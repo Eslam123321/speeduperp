@@ -1,5 +1,5 @@
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
-import { getFirestore, type Firestore } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, type Firestore } from 'firebase/firestore';
 import { getDatabase, ref, set, get, onValue, type Database } from 'firebase/database';
 import { getAnalytics, isSupported } from 'firebase/analytics';
 import type { FirebaseConfigInput } from '../types';
@@ -70,6 +70,20 @@ export const syncToFirebase = async (path: string, data: any) => {
     await set(dbRef, data);
   } catch (err) {
     console.error(`Firebase Sync Error at ${path}:`, err);
+  }
+};
+
+export const syncToFirestore = async (collectionName: string, data: any[]) => {
+  if (!db || !Array.isArray(data)) return;
+  try {
+    for (const item of data) {
+      if (item && item.id) {
+        const docRef = doc(db, collectionName, String(item.id));
+        await setDoc(docRef, item, { merge: true });
+      }
+    }
+  } catch (err) {
+    console.error(`Firestore Sync Error at ${collectionName}:`, err);
   }
 };
 

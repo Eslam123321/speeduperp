@@ -27,7 +27,7 @@ import {
   INITIAL_REPRESENTATIVES,
   INITIAL_EXPENSES,
 } from '../data/initialData';
-import { initializeFirebaseService, DEFAULT_FIREBASE_CONFIG, syncToFirebase, fetchFromFirebase, subscribeToFirebase } from '../services/firebase';
+import { initializeFirebaseService, DEFAULT_FIREBASE_CONFIG, syncToFirebase, syncToFirestore, fetchFromFirebase, subscribeToFirebase } from '../services/firebase';
 
 interface ERPContextType {
   products: Product[];
@@ -208,7 +208,10 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return INITIAL_USERS;
   });
 
-  const [loggedInUser, setLoggedInUser] = useState<SystemUser | null>(null);
+  const [loggedInUser, setLoggedInUser] = useState<SystemUser | null>(() => {
+    const saved = localStorage.getItem('dukhan_logged_user');
+    return saved ? JSON.parse(saved) : null;
+  });
 
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [printingInvoice, setPrintingInvoice] = useState<SaleInvoice | null>(null);
@@ -347,50 +350,59 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return perms.includes('all') || perms.includes(perm);
   };
 
-  // Sync to localStorage & Firebase Realtime Database
+  // Sync to localStorage, Firebase Realtime Database & Cloud Firestore
   useEffect(() => {
     localStorage.setItem('dukhan_products', JSON.stringify(products));
     syncToFirebase('products', products);
+    syncToFirestore('products', products);
   }, [products]);
 
   useEffect(() => {
     localStorage.setItem('dukhan_customers', JSON.stringify(customers));
     syncToFirebase('customers', customers);
+    syncToFirestore('customers', customers);
   }, [customers]);
 
   useEffect(() => {
     localStorage.setItem('dukhan_suppliers', JSON.stringify(suppliers));
     syncToFirebase('suppliers', suppliers);
+    syncToFirestore('suppliers', suppliers);
   }, [suppliers]);
 
   useEffect(() => {
     localStorage.setItem('dukhan_sales', JSON.stringify(sales));
     syncToFirebase('sales', sales);
+    syncToFirestore('sales', sales);
   }, [sales]);
 
   useEffect(() => {
     localStorage.setItem('dukhan_purchases', JSON.stringify(purchases));
     syncToFirebase('purchases', purchases);
+    syncToFirestore('purchases', purchases);
   }, [purchases]);
 
   useEffect(() => {
     localStorage.setItem('dukhan_representatives', JSON.stringify(representatives));
     syncToFirebase('representatives', representatives);
+    syncToFirestore('representatives', representatives);
   }, [representatives]);
 
   useEffect(() => {
     localStorage.setItem('dukhan_expenses', JSON.stringify(expenses));
     syncToFirebase('expenses', expenses);
+    syncToFirestore('expenses', expenses);
   }, [expenses]);
 
   useEffect(() => {
     localStorage.setItem('dukhan_notifications', JSON.stringify(notifications));
     syncToFirebase('notifications', notifications);
+    syncToFirestore('notifications', notifications);
   }, [notifications]);
 
   useEffect(() => {
     localStorage.setItem('dukhan_users', JSON.stringify(users));
     syncToFirebase('users', users);
+    syncToFirestore('users', users);
   }, [users]);
 
   useEffect(() => {
