@@ -64,7 +64,7 @@ export const LoginPage: React.FC = () => {
                   required
                   value={usernameInput}
                   onChange={(e) => setUsernameInput(e.target.value)}
-                  placeholder="أدخل اليوزر نيم (مثال: hossam)"
+                  placeholder="أدخل اسم المستخدم"
                   className="w-full pr-10 pl-4 py-3 bg-slate-900 border border-slate-700/80 rounded-xl text-white font-medium focus:outline-none focus:border-amber-500 transition-all"
                 />
               </div>
@@ -79,7 +79,7 @@ export const LoginPage: React.FC = () => {
                   required
                   value={passwordInput}
                   onChange={(e) => setPasswordInput(e.target.value)}
-                  placeholder="أدخل كلمة السر (مثال: 123)"
+                  placeholder="أدخل كلمة السر"
                   className="w-full pr-10 pl-4 py-3 bg-slate-900 border border-slate-700/80 rounded-xl text-white font-medium focus:outline-none focus:border-amber-500 transition-all"
                 />
               </div>
