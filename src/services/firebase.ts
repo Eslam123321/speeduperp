@@ -1,11 +1,13 @@
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
 import { getFirestore, type Firestore } from 'firebase/firestore';
+import { getDatabase, ref, set, get, onValue, type Database } from 'firebase/database';
 import { getAnalytics, isSupported } from 'firebase/analytics';
 import type { FirebaseConfigInput } from '../types';
 
 export const DEFAULT_FIREBASE_CONFIG: FirebaseConfigInput = {
   apiKey: "AIzaSyB2IkqgZE8fk79RBkEw5W8VGD38Aq0TI-U",
   authDomain: "speeduperp.firebaseapp.com",
+  databaseURL: "https://speeduperp-default-rtdb.firebaseio.com",
   projectId: "speeduperp",
   storageBucket: "speeduperp.firebasestorage.app",
   messagingSenderId: "1092085780628",
@@ -15,6 +17,7 @@ export const DEFAULT_FIREBASE_CONFIG: FirebaseConfigInput = {
 
 let firebaseApp: FirebaseApp | null = null;
 let db: Firestore | null = null;
+let rtdb: Database | null = null;
 
 export const initializeFirebaseService = (config: FirebaseConfigInput = DEFAULT_FIREBASE_CONFIG): { success: boolean; message: string } => {
   try {
@@ -29,7 +32,17 @@ export const initializeFirebaseService = (config: FirebaseConfigInput = DEFAULT_
       firebaseApp = initializeApp(activeConfig);
     }
 
-    db = getFirestore(firebaseApp);
+    try {
+      db = getFirestore(firebaseApp);
+    } catch (e) {
+      console.warn('Firestore init skipped:', e);
+    }
+
+    try {
+      rtdb = getDatabase(firebaseApp);
+    } catch (e) {
+      console.warn('Realtime Database init skipped:', e);
+    }
 
     if (activeConfig.measurementId && typeof window !== 'undefined') {
       isSupported().then((supported) => {
@@ -39,7 +52,7 @@ export const initializeFirebaseService = (config: FirebaseConfigInput = DEFAULT_
       }).catch(() => {});
     }
 
-    return { success: true, message: 'تم الربط مع Firebase (speeduperp) بنجاح!' };
+    return { success: true, message: 'تم الربط مع Firebase (Realtime Database & Firestore) بنجاح!' };
   } catch (error: any) {
     console.error('Firebase Init Error:', error);
     return { success: false, message: error.message || 'فشل الاتصال بـ Firebase' };
@@ -47,5 +60,17 @@ export const initializeFirebaseService = (config: FirebaseConfigInput = DEFAULT_
 };
 
 export const getFirestoreDb = () => db;
-export const isFirebaseActive = () => db !== null;
+export const getRealtimeDb = () => rtdb;
+export const isFirebaseActive = () => db !== null || rtdb !== null;
+
+export const syncToFirebase = async (path: string, data: any) => {
+  if (!rtdb) return;
+  try {
+    const dbRef = ref(rtdb, path);
+    await set(dbRef, data);
+  } catch (err) {
+    console.error(`Firebase Sync Error at ${path}:`, err);
+  }
+};
+
 
