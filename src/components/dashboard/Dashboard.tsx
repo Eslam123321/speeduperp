@@ -59,17 +59,32 @@ export const Dashboard: React.FC = () => {
   const [capitalInput, setCapitalInput] = useState(initialCapitalCash);
 
   // Calculations
-  const todayIsoDate = new Date().toISOString().split('T')[0];
-  const todayArabicDate = new Date().toLocaleDateString('ar-EG');
+  const today = new Date();
+  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0).getTime();
+  const endOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999).getTime();
+
+  const getInvoiceTimestamp = (s: { id?: string; date?: string }) => {
+    if (s.id && s.id.startsWith('sale-')) {
+      const ts = Number(s.id.replace('sale-', ''));
+      if (!isNaN(ts) && ts > 1000000000) return ts;
+    }
+    if (s.date) {
+      const parsed = new Date(s.date).getTime();
+      if (!isNaN(parsed) && parsed > 1000000000) return parsed;
+    }
+    return 0;
+  };
 
   const todaySales = sales.filter((s) => {
+    const ts = getInvoiceTimestamp(s);
+    if (ts >= startOfToday && ts <= endOfToday) return true;
     if (!s.date) return false;
-    // Check if created today or timestamp is within last 24h
-    const isNewToday = s.id && s.id.startsWith('sale-') && Date.now() - Number(s.id.replace('sale-', '')) < 86400000;
-    return isNewToday || s.date.includes(todayIsoDate) || s.date.includes(todayArabicDate) || s.date.startsWith('2026-07-29');
+    const todayIsoDate = today.toISOString().split('T')[0];
+    const todayArabicDate = today.toLocaleDateString('ar-EG');
+    return s.date.includes(todayIsoDate) || s.date.includes(todayArabicDate);
   });
-  const totalTodaySalesAmount = todaySales.reduce((acc, s) => acc + s.finalAmount, 0);
 
+  const totalTodaySalesAmount = todaySales.reduce((acc, s) => acc + s.finalAmount, 0);
   const totalMonthlySalesAmount = sales.reduce((acc, s) => acc + s.finalAmount, 0);
   const totalNetProfit = sales.reduce((acc, s) => acc + s.netProfit, 0);
 
@@ -77,17 +92,30 @@ export const Dashboard: React.FC = () => {
   const totalCustomerDebts = customers.reduce((acc, c) => acc + Math.max(0, c.balance), 0);
   const totalSupplierPayables = suppliers.reduce((acc, s) => acc + Math.max(0, s.balance), 0);
 
-  // Chart 1: Real-time Sales & Profits trend for the last 7 days
+  // Chart 1: Real-time Sales & Profits trend for the last 7 days (Robust Timestamp Matching)
   const daysOfWeek = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
-  const todayDate = new Date();
-  
-  const salesChartData = Array.from({ length: 7 }).map((_, i) => {
-    const d = new Date();
-    d.setDate(todayDate.getDate() - (6 - i));
-    const dateIso = d.toISOString().split('T')[0];
-    const dayName = daysOfWeek[d.getDay()];
 
-    const daySalesInvoices = sales.filter((s) => s.date && s.date.includes(dateIso));
+  const salesChartData = Array.from({ length: 7 }).map((_, i) => {
+    const targetDate = new Date(today);
+    targetDate.setDate(today.getDate() - (6 - i));
+
+    const y = targetDate.getFullYear();
+    const m = targetDate.getMonth();
+    const d = targetDate.getDate();
+
+    const dayStart = new Date(y, m, d, 0, 0, 0).getTime();
+    const dayEnd = new Date(y, m, d, 23, 59, 59, 999).getTime();
+
+    const dayName = daysOfWeek[targetDate.getDay()];
+
+    const daySalesInvoices = sales.filter((s) => {
+      const ts = getInvoiceTimestamp(s);
+      if (ts > 0) return ts >= dayStart && ts <= dayEnd;
+      if (!s.date) return false;
+      const targetIso = targetDate.toISOString().split('T')[0];
+      return s.date.includes(targetIso);
+    });
+
     const mabi3at = daySalesInvoices.reduce((acc, s) => acc + s.finalAmount, 0);
     const arbah = daySalesInvoices.reduce((acc, s) => acc + s.netProfit, 0);
 
