@@ -60,7 +60,7 @@ export const InventoryManager: React.FC = () => {
     packsPerCarton: 10,
     cartonsPerBox: 50,
     currentStockPacks: 1000,
-    minStockAlertPacks: 500,
+    minStockAlertCartons: 50,
     initialBoxes: 0,
     initialCartons: 0,
     initialPacks: 0,
@@ -78,7 +78,7 @@ export const InventoryManager: React.FC = () => {
       packsPerCarton: 10,
       cartonsPerBox: 50,
       currentStockPacks: 0,
-      minStockAlertPacks: 400,
+      minStockAlertCartons: 40,
       initialBoxes: 0,
       initialCartons: 0,
       initialPacks: 0,
@@ -91,6 +91,7 @@ export const InventoryManager: React.FC = () => {
     setEditingProduct(p);
     const packsPerCarton = p.packsPerCarton || 10;
     const qaroosaCount = Math.floor(p.currentStockPacks / packsPerCarton);
+    const minStockAlertCartons = Math.floor((p.minStockAlertPacks || 0) / packsPerCarton);
 
     setFormData({
       name: p.name,
@@ -103,7 +104,7 @@ export const InventoryManager: React.FC = () => {
       packsPerCarton,
       cartonsPerBox: p.cartonsPerBox || 50,
       currentStockPacks: p.currentStockPacks,
-      minStockAlertPacks: p.minStockAlertPacks,
+      minStockAlertCartons: minStockAlertCartons > 0 ? minStockAlertCartons : (p.minStockAlertPacks || 0),
       initialBoxes: 0,
       initialCartons: qaroosaCount,
       initialPacks: 0,
@@ -129,7 +130,7 @@ export const InventoryManager: React.FC = () => {
       packsPerCarton,
       cartonsPerBox: formData.cartonsPerBox || 50,
       currentStockPacks: Math.max(0, calculatedTotalPacks),
-      minStockAlertPacks: formData.minStockAlertPacks,
+      minStockAlertPacks: (formData.minStockAlertCartons || 0) * packsPerCarton,
     };
 
     if (editingProduct) {
@@ -486,7 +487,7 @@ export const InventoryManager: React.FC = () => {
                       {isLowStock ? (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/40 text-[10px] font-black animate-bounce">
                           <AlertTriangle className="w-3 h-3" />
-                          <span>وصل حد الطلب ({product.minStockAlertPacks})</span>
+                          <span>وصل حد الطلب ({Math.floor(product.minStockAlertPacks / (product.packsPerCarton || 10))} قروصة)</span>
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold">
@@ -691,12 +692,13 @@ export const InventoryManager: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-300 mb-1">حد تنبيه الطلب (بالعلب)</label>
+                  <label className="block font-semibold text-slate-300 mb-1">حد تنبيه الطلب (بالقروصة)</label>
                   <input
                     type="number"
                     required
-                    value={formData.minStockAlertPacks}
-                    onChange={(e) => setFormData({ ...formData, minStockAlertPacks: Number(e.target.value) })}
+                    value={formData.minStockAlertCartons}
+                    onChange={(e) => setFormData({ ...formData, minStockAlertCartons: Number(e.target.value) })}
+                    placeholder="0 قروصة"
                     className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white focus:outline-none"
                   />
                 </div>

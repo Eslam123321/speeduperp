@@ -77,22 +77,41 @@ export const Dashboard: React.FC = () => {
   const totalCustomerDebts = customers.reduce((acc, c) => acc + Math.max(0, c.balance), 0);
   const totalSupplierPayables = suppliers.reduce((acc, s) => acc + Math.max(0, s.balance), 0);
 
-  // Chart 1: Sales trend mock data based on recent sales
-  const salesChartData = [
-    { date: 'السبت', mabi3at: 18500, arbah: 2100 },
-    { date: 'الأحد', mabi3at: 24000, arbah: 2900 },
-    { date: 'الإثنين', mabi3at: 31000, arbah: 3800 },
-    { date: 'الثلاثاء', mabi3at: 27500, arbah: 3200 },
-    { date: 'الأربعاء', mabi3at: 41500, arbah: 3550 },
-    { date: 'الخميس', mabi3at: 52000, arbah: 4900 },
-    { date: 'اليوم', mabi3at: totalTodaySalesAmount > 0 ? totalTodaySalesAmount : 38000, arbah: totalTodaySalesAmount > 0 ? totalNetProfit * 0.2 : 3400 },
-  ];
+  // Chart 1: Real-time Sales & Profits trend for the last 7 days
+  const daysOfWeek = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+  const todayDate = new Date();
+  
+  const salesChartData = Array.from({ length: 7 }).map((_, i) => {
+    const d = new Date();
+    d.setDate(todayDate.getDate() - (6 - i));
+    const dateIso = d.toISOString().split('T')[0];
+    const dayName = daysOfWeek[d.getDay()];
 
-  // Chart 2: Top Selling Cigarette Brands breakdown
+    const daySalesInvoices = sales.filter((s) => s.date && s.date.includes(dateIso));
+    const mabi3at = daySalesInvoices.reduce((acc, s) => acc + s.finalAmount, 0);
+    const arbah = daySalesInvoices.reduce((acc, s) => acc + s.netProfit, 0);
+
+    return {
+      date: i === 6 ? 'اليوم' : dayName,
+      mabi3at,
+      arbah,
+    };
+  });
+
+  // Chart 2: Top Selling Brands from actual sales invoices
   const brandSalesMap: { [key: string]: number } = {};
   products.forEach((p) => {
-    brandSalesMap[p.brand] = (brandSalesMap[p.brand] || 0) + (p.packsPerCarton * 250);
+    brandSalesMap[p.brand] = 0;
   });
+
+  sales.forEach((inv) => {
+    inv.items.forEach((item) => {
+      const p = products.find((prod) => prod.id === item.productId || prod.name === item.productName);
+      const brand = p ? p.brand : 'أخرى';
+      brandSalesMap[brand] = (brandSalesMap[brand] || 0) + (item.packsQuantity || item.quantity * 10);
+    });
+  });
+
   const brandChartData = Object.keys(brandSalesMap).map((brand) => ({
     name: brand,
     sales: brandSalesMap[brand],
