@@ -240,13 +240,6 @@ export const Dashboard: React.FC = () => {
               </strong>
             </div>
 
-            <div className="px-3.5 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs">
-              <span className="text-amber-300 block text-[10px]">صافي رأس المال الكلي النشط</span>
-              <strong className="text-amber-400 text-sm font-black">
-                {netTotalCapital.toLocaleString('ar-EG')} ج.م
-              </strong>
-            </div>
-
             {currentUser.role === 'admin' && (
               <button
                 onClick={() => {

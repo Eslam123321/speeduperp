@@ -75,7 +75,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
     },
     {
       id: 'settings',
-      label: 'الإعدادات والنسخ الاحتياطي',
+      label: 'الإعدادات',
       icon: Settings,
       perm: 'system_settings' as PermissionType,
     },
