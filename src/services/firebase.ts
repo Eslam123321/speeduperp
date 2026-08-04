@@ -73,4 +73,27 @@ export const syncToFirebase = async (path: string, data: any) => {
   }
 };
 
+export const fetchFromFirebase = async (path: string) => {
+  if (!rtdb) return null;
+  try {
+    const dbRef = ref(rtdb, path);
+    const snapshot = await get(dbRef);
+    return snapshot.exists() ? snapshot.val() : null;
+  } catch (err) {
+    console.error(`Firebase Fetch Error at ${path}:`, err);
+    return null;
+  }
+};
+
+export const subscribeToFirebase = (path: string, callback: (data: any) => void) => {
+  if (!rtdb) return () => {};
+  const dbRef = ref(rtdb, path);
+  return onValue(dbRef, (snapshot) => {
+    if (snapshot.exists()) {
+      callback(snapshot.val());
+    }
+  });
+};
+
+
 

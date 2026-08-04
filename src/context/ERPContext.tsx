@@ -27,7 +27,7 @@ import {
   INITIAL_REPRESENTATIVES,
   INITIAL_EXPENSES,
 } from '../data/initialData';
-import { initializeFirebaseService, DEFAULT_FIREBASE_CONFIG } from '../services/firebase';
+import { initializeFirebaseService, DEFAULT_FIREBASE_CONFIG, syncToFirebase, fetchFromFirebase, subscribeToFirebase } from '../services/firebase';
 
 interface ERPContextType {
   products: Product[];
@@ -347,16 +347,51 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return perms.includes('all') || perms.includes(perm);
   };
 
-  // Sync to localStorage
-  useEffect(() => { localStorage.setItem('dukhan_products', JSON.stringify(products)); }, [products]);
-  useEffect(() => { localStorage.setItem('dukhan_customers', JSON.stringify(customers)); }, [customers]);
-  useEffect(() => { localStorage.setItem('dukhan_suppliers', JSON.stringify(suppliers)); }, [suppliers]);
-  useEffect(() => { localStorage.setItem('dukhan_sales', JSON.stringify(sales)); }, [sales]);
-  useEffect(() => { localStorage.setItem('dukhan_purchases', JSON.stringify(purchases)); }, [purchases]);
-  useEffect(() => { localStorage.setItem('dukhan_representatives', JSON.stringify(representatives)); }, [representatives]);
-  useEffect(() => { localStorage.setItem('dukhan_expenses', JSON.stringify(expenses)); }, [expenses]);
-  useEffect(() => { localStorage.setItem('dukhan_notifications', JSON.stringify(notifications)); }, [notifications]);
-  useEffect(() => { localStorage.setItem('dukhan_users', JSON.stringify(users)); }, [users]);
+  // Sync to localStorage & Firebase Realtime Database
+  useEffect(() => {
+    localStorage.setItem('dukhan_products', JSON.stringify(products));
+    syncToFirebase('products', products);
+  }, [products]);
+
+  useEffect(() => {
+    localStorage.setItem('dukhan_customers', JSON.stringify(customers));
+    syncToFirebase('customers', customers);
+  }, [customers]);
+
+  useEffect(() => {
+    localStorage.setItem('dukhan_suppliers', JSON.stringify(suppliers));
+    syncToFirebase('suppliers', suppliers);
+  }, [suppliers]);
+
+  useEffect(() => {
+    localStorage.setItem('dukhan_sales', JSON.stringify(sales));
+    syncToFirebase('sales', sales);
+  }, [sales]);
+
+  useEffect(() => {
+    localStorage.setItem('dukhan_purchases', JSON.stringify(purchases));
+    syncToFirebase('purchases', purchases);
+  }, [purchases]);
+
+  useEffect(() => {
+    localStorage.setItem('dukhan_representatives', JSON.stringify(representatives));
+    syncToFirebase('representatives', representatives);
+  }, [representatives]);
+
+  useEffect(() => {
+    localStorage.setItem('dukhan_expenses', JSON.stringify(expenses));
+    syncToFirebase('expenses', expenses);
+  }, [expenses]);
+
+  useEffect(() => {
+    localStorage.setItem('dukhan_notifications', JSON.stringify(notifications));
+    syncToFirebase('notifications', notifications);
+  }, [notifications]);
+
+  useEffect(() => {
+    localStorage.setItem('dukhan_users', JSON.stringify(users));
+    syncToFirebase('users', users);
+  }, [users]);
 
   useEffect(() => {
     if (loggedInUser) {
@@ -370,6 +405,18 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const configToUse = firebaseConfig || DEFAULT_FIREBASE_CONFIG;
     const res = initializeFirebaseService(configToUse);
     setFirebaseStatus({ connected: res.success, message: res.message });
+
+    if (res.success) {
+      // Realtime live subscription for users so employee logins & permissions sync live across devices!
+      const unsubUsers = subscribeToFirebase('users', (remoteUsers) => {
+        if (Array.isArray(remoteUsers) && remoteUsers.length > 0) {
+          setUsers(remoteUsers);
+        }
+      });
+      return () => {
+        unsubUsers();
+      };
+    }
   }, [firebaseConfig]);
 
   // Auth logic
