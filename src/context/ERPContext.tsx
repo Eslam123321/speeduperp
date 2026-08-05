@@ -383,8 +383,6 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     message: 'جاري الاتصال بـ Firebase...',
   });
 
-  const isRemoteUpdateRef = React.useRef(false);
-
   const currentUser = loggedInUser || users[0];
 
   const hasUserPermission = (perm: PermissionType): boolean => {
@@ -394,77 +392,59 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return perms.includes('all') || perms.includes(perm);
   };
 
-  // Sync to localStorage, Firebase Realtime Database & Cloud Firestore (Skipped on remote incoming updates to prevent loops & lag)
+  // Sync to localStorage, Firebase Realtime Database & Cloud Firestore on EVERY state change
   useEffect(() => {
     localStorage.setItem('dukhan_products', JSON.stringify(products));
-    if (!isRemoteUpdateRef.current) {
-      syncToFirebase('products', products);
-      syncToFirestore('products', products);
-    }
+    syncToFirebase('products', products);
+    syncToFirestore('products', products);
   }, [products]);
 
   useEffect(() => {
     localStorage.setItem('dukhan_customers', JSON.stringify(customers));
-    if (!isRemoteUpdateRef.current) {
-      syncToFirebase('customers', customers);
-      syncToFirestore('customers', customers);
-    }
+    syncToFirebase('customers', customers);
+    syncToFirestore('customers', customers);
   }, [customers]);
 
   useEffect(() => {
     localStorage.setItem('dukhan_suppliers', JSON.stringify(suppliers));
-    if (!isRemoteUpdateRef.current) {
-      syncToFirebase('suppliers', suppliers);
-      syncToFirestore('suppliers', suppliers);
-    }
+    syncToFirebase('suppliers', suppliers);
+    syncToFirestore('suppliers', suppliers);
   }, [suppliers]);
 
   useEffect(() => {
     localStorage.setItem('dukhan_sales', JSON.stringify(sales));
-    if (!isRemoteUpdateRef.current) {
-      syncToFirebase('sales', sales);
-      syncToFirestore('sales', sales);
-    }
+    syncToFirebase('sales', sales);
+    syncToFirestore('sales', sales);
   }, [sales]);
 
   useEffect(() => {
     localStorage.setItem('dukhan_purchases', JSON.stringify(purchases));
-    if (!isRemoteUpdateRef.current) {
-      syncToFirebase('purchases', purchases);
-      syncToFirestore('purchases', purchases);
-    }
+    syncToFirebase('purchases', purchases);
+    syncToFirestore('purchases', purchases);
   }, [purchases]);
 
   useEffect(() => {
     localStorage.setItem('dukhan_representatives', JSON.stringify(representatives));
-    if (!isRemoteUpdateRef.current) {
-      syncToFirebase('representatives', representatives);
-      syncToFirestore('representatives', representatives);
-    }
+    syncToFirebase('representatives', representatives);
+    syncToFirestore('representatives', representatives);
   }, [representatives]);
 
   useEffect(() => {
     localStorage.setItem('dukhan_expenses', JSON.stringify(expenses));
-    if (!isRemoteUpdateRef.current) {
-      syncToFirebase('expenses', expenses);
-      syncToFirestore('expenses', expenses);
-    }
+    syncToFirebase('expenses', expenses);
+    syncToFirestore('expenses', expenses);
   }, [expenses]);
 
   useEffect(() => {
     localStorage.setItem('dukhan_notifications', JSON.stringify(notifications));
-    if (!isRemoteUpdateRef.current) {
-      syncToFirebase('notifications', notifications);
-      syncToFirestore('notifications', notifications);
-    }
+    syncToFirebase('notifications', notifications);
+    syncToFirestore('notifications', notifications);
   }, [notifications]);
 
   useEffect(() => {
     localStorage.setItem('dukhan_users', JSON.stringify(users));
-    if (!isRemoteUpdateRef.current) {
-      syncToFirebase('users', users);
-      syncToFirestore('users', users);
-    }
+    syncToFirebase('users', users);
+    syncToFirestore('users', users);
   }, [users]);
 
   useEffect(() => {
@@ -477,9 +457,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   useEffect(() => {
     localStorage.setItem('dukhan_capital_cash', String(initialCapitalCash));
-    if (!isRemoteUpdateRef.current) {
-      syncToFirebase('capital_cash', initialCapitalCash);
-    }
+    syncToFirebase('capital_cash', initialCapitalCash);
   }, [initialCapitalCash]);
 
   useEffect(() => {
@@ -488,58 +466,71 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setFirebaseStatus({ connected: res.success, message: res.message });
 
     if (res.success) {
+      const isDiff = (a: any, b: any) => JSON.stringify(a) !== JSON.stringify(b);
+
       // Realtime live subscriptions for ALL entities across devices (Mobile + Desktop)
       const unsubProducts = subscribeToFirebase('products', (remote) => {
         if (Array.isArray(remote) && remote.length > 0) {
-          isRemoteUpdateRef.current = true;
-          setProducts(remote);
+          setProducts((prev) => (isDiff(remote, prev) ? remote : prev));
         }
       });
       const unsubCustomers = subscribeToFirebase('customers', (remote) => {
-        isRemoteUpdateRef.current = true;
-        if (Array.isArray(remote)) setCustomers(remote);
-        else if (remote === null) setCustomers([]);
+        if (Array.isArray(remote)) {
+          setCustomers((prev) => (isDiff(remote, prev) ? remote : prev));
+        } else if (remote === null) {
+          setCustomers((prev) => (prev.length > 0 ? [] : prev));
+        }
       });
       const unsubSuppliers = subscribeToFirebase('suppliers', (remote) => {
-        isRemoteUpdateRef.current = true;
-        if (Array.isArray(remote)) setSuppliers(remote);
-        else if (remote === null) setSuppliers([]);
+        if (Array.isArray(remote)) {
+          setSuppliers((prev) => (isDiff(remote, prev) ? remote : prev));
+        } else if (remote === null) {
+          setSuppliers((prev) => (prev.length > 0 ? [] : prev));
+        }
       });
       const unsubSales = subscribeToFirebase('sales', (remote) => {
-        isRemoteUpdateRef.current = true;
-        if (Array.isArray(remote)) setSales(remote);
-        else if (remote === null) setSales([]);
+        if (Array.isArray(remote)) {
+          setSales((prev) => (isDiff(remote, prev) ? remote : prev));
+        } else if (remote === null) {
+          setSales((prev) => (prev.length > 0 ? [] : prev));
+        }
       });
       const unsubPurchases = subscribeToFirebase('purchases', (remote) => {
-        isRemoteUpdateRef.current = true;
-        if (Array.isArray(remote)) setPurchases(remote);
-        else if (remote === null) setPurchases([]);
+        if (Array.isArray(remote)) {
+          setPurchases((prev) => (isDiff(remote, prev) ? remote : prev));
+        } else if (remote === null) {
+          setPurchases((prev) => (prev.length > 0 ? [] : prev));
+        }
       });
       const unsubReps = subscribeToFirebase('representatives', (remote) => {
-        isRemoteUpdateRef.current = true;
-        if (Array.isArray(remote)) setRepresentatives(remote);
-        else if (remote === null) setRepresentatives([]);
+        if (Array.isArray(remote)) {
+          setRepresentatives((prev) => (isDiff(remote, prev) ? remote : prev));
+        } else if (remote === null) {
+          setRepresentatives((prev) => (prev.length > 0 ? [] : prev));
+        }
       });
       const unsubExpenses = subscribeToFirebase('expenses', (remote) => {
-        isRemoteUpdateRef.current = true;
-        if (Array.isArray(remote)) setExpenses(remote);
-        else if (remote === null) setExpenses([]);
+        if (Array.isArray(remote)) {
+          setExpenses((prev) => (isDiff(remote, prev) ? remote : prev));
+        } else if (remote === null) {
+          setExpenses((prev) => (prev.length > 0 ? [] : prev));
+        }
       });
       const unsubNotifications = subscribeToFirebase('notifications', (remote) => {
-        isRemoteUpdateRef.current = true;
-        if (Array.isArray(remote)) setNotifications(remote);
-        else if (remote === null) setNotifications([]);
+        if (Array.isArray(remote)) {
+          setNotifications((prev) => (isDiff(remote, prev) ? remote : prev));
+        } else if (remote === null) {
+          setNotifications((prev) => (prev.length > 0 ? [] : prev));
+        }
       });
       const unsubUsers = subscribeToFirebase('users', (remoteUsers) => {
         if (Array.isArray(remoteUsers) && remoteUsers.length > 0) {
-          isRemoteUpdateRef.current = true;
-          setUsers(remoteUsers);
+          setUsers((prev) => (isDiff(remoteUsers, prev) ? remoteUsers : prev));
         }
       });
       const unsubCapital = subscribeToFirebase('capital_cash', (remoteCap) => {
         if (typeof remoteCap === 'number') {
-          isRemoteUpdateRef.current = true;
-          setInitialCapitalCashState(remoteCap);
+          setInitialCapitalCashState((prev) => (prev !== remoteCap ? remoteCap : prev));
         }
       });
 
