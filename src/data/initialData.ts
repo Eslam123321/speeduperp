@@ -167,26 +167,6 @@ export const INITIAL_USERS: SystemUser[] = [
     permissions: ['all', 'pos_sales', 'inventory_manage', 'purchases_suppliers', 'customers_debts', 'reports_profits', 'system_settings'],
     avatarColor: 'from-amber-500 to-yellow-600',
     createdAt: '2026-01-01',
-  },
-  {
-    id: 'usr-2',
-    name: 'محمود عبد الفتاح',
-    username: 'inventory',
-    password: '123',
-    role: 'inventory_manager',
-    permissions: ['inventory_manage', 'purchases_suppliers', 'pos_sales'],
-    avatarColor: 'from-emerald-500 to-teal-600',
-    createdAt: '2026-01-01',
-  },
-  {
-    id: 'usr-3',
-    name: 'حسن الكاشير',
-    username: 'cashier',
-    password: '123',
-    role: 'cashier',
-    permissions: ['pos_sales', 'customers_debts'],
-    avatarColor: 'from-blue-500 to-indigo-600',
-    createdAt: '2026-01-01',
   }
 ];
 

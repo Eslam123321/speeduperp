@@ -231,9 +231,9 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return saved ? JSON.parse(saved) : [];
   });
 
-  // Automated complete legacy mock data cleanup (wipes legacy mock customers, suppliers, sales, reps, 500k capital)
+  // Automated complete legacy mock data cleanup (wipes legacy mock customers, suppliers, sales, reps, users, 500k capital)
   React.useEffect(() => {
-    const migratedKey = 'dukhan_clean_all_mock_v5';
+    const migratedKey = 'dukhan_clean_all_mock_v6';
     if (!localStorage.getItem(migratedKey)) {
       setCustomers((prev) => prev.filter((c) => !['cust-1', 'cust-2', 'cust-3', 'cust-4'].includes(c.id)));
       setSuppliers((prev) => prev.filter((s) => !['supp-1', 'supp-2', 'supp-3'].includes(s.id)));
@@ -241,6 +241,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setPurchases((prev) => prev.filter((p) => !['purch-1'].includes(p.id)));
       setNotifications((prev) => prev.filter((n) => !['notif-1', 'notif-2', 'notif-3'].includes(n.id)));
       setRepresentatives((prev) => prev.filter((r) => !['rep-1', 'rep-2'].includes(r.id)));
+      setUsers((prev) => prev.filter((u) => !['usr-2', 'usr-3'].includes(u.id)));
       setExpenses([]);
 
       const savedCap = localStorage.getItem('dukhan_capital_cash');
