@@ -228,9 +228,9 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return saved ? JSON.parse(saved) : [];
   });
 
-  // Automated complete legacy mock data cleanup (wipes legacy mock customers, suppliers, sales, reps, users, 500k capital from local state & Firebase)
+  // Automated complete legacy mock data cleanup (wipes legacy mock products, customers, suppliers, sales, reps, users, 500k capital from local state & Firebase)
   React.useEffect(() => {
-    const migratedKey = 'dukhan_clean_all_mock_v9';
+    const migratedKey = 'dukhan_clean_all_mock_v10';
     if (!localStorage.getItem(migratedKey)) {
       ['usr-2', 'usr-3'].forEach((id) => deleteFromFirestore('users', id));
       ['cust-1', 'cust-2', 'cust-3', 'cust-4'].forEach((id) => deleteFromFirestore('customers', id));
@@ -238,33 +238,33 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ['sale-1', 'sale-2'].forEach((id) => deleteFromFirestore('sales', id));
       ['purch-1'].forEach((id) => deleteFromFirestore('purchases', id));
       ['rep-1', 'rep-2'].forEach((id) => deleteFromFirestore('representatives', id));
+      ['prod-1', 'prod-2', 'prod-3', 'prod-4', 'prod-5', 'prod-6', 'prod-7', 'prod-8', 'prod-9', 'prod-10'].forEach((id) => deleteFromFirestore('products', id));
 
-      setCustomers((prev) => prev.filter((c) => !['cust-1', 'cust-2', 'cust-3', 'cust-4'].includes(c.id)));
-      setSuppliers((prev) => prev.filter((s) => !['supp-1', 'supp-2', 'supp-3'].includes(s.id)));
-      setSales((prev) => prev.filter((s) => !['sale-1', 'sale-2'].includes(s.id)));
-      setPurchases((prev) => prev.filter((p) => !['purch-1'].includes(p.id)));
-      setNotifications((prev) => prev.filter((n) => !['notif-1', 'notif-2', 'notif-3'].includes(n.id)));
-      setRepresentatives((prev) => prev.filter((r) => !['rep-1', 'rep-2'].includes(r.id)));
-      
-      const validPerms: PermissionType[] = ['all', 'pos_sales', 'inventory_manage', 'customers_debts', 'reports_profits', 'system_settings'];
-      setUsers((prev) =>
-        prev
-          .filter((u) => !['usr-2', 'usr-3'].includes(u.id))
-          .map((u) => ({
-            ...u,
-            permissions: (u.permissions || ['all']).filter((p) => validPerms.includes(p as PermissionType)),
-          }))
-      );
-      syncToFirebase('users', INITIAL_USERS);
-      syncToFirestore('users', INITIAL_USERS);
-
+      setProducts([]);
+      setCustomers([]);
+      setSuppliers([]);
+      setSales([]);
+      setPurchases([]);
+      setNotifications([]);
+      setRepresentatives([]);
       setExpenses([]);
 
-      const savedCap = localStorage.getItem('dukhan_capital_cash');
-      if (savedCap === '500000' || !savedCap) {
-        setInitialCapitalCashState(0);
-        localStorage.setItem('dukhan_capital_cash', '0');
-      }
+      syncToFirebase('products', []);
+      syncToFirebase('customers', []);
+      syncToFirebase('suppliers', []);
+      syncToFirebase('sales', []);
+      syncToFirebase('purchases', []);
+      syncToFirebase('representatives', []);
+      syncToFirebase('expenses', []);
+      syncToFirebase('notifications', []);
+
+      const cleanUsers = INITIAL_USERS;
+      setUsers(cleanUsers);
+      syncToFirebase('users', cleanUsers);
+      syncToFirestore('users', cleanUsers);
+
+      setInitialCapitalCashState(0);
+      localStorage.setItem('dukhan_capital_cash', '0');
 
       localStorage.setItem(migratedKey, 'true');
     }
