@@ -403,8 +403,8 @@ export const INITIAL_REPRESENTATIVES: Representative[] = [
     name: 'أحمد السائق (سيارة 1 - خط المعادي)',
     phone: '01011223344',
     vehicleNo: 'أ ب ج 1234',
-    cashOnHand: 14500, // فلوس معاه محصلة
-    totalSales: 45200,
+    cashOnHand: 0,
+    totalSales: 0,
     assignedStock: [
       { productId: 'prod-1', productName: 'كليوباترا بوكس كينج سايز 20', quantityPacks: 500 }, // 1 كرتونة
       { productId: 'prod-3', productName: 'مارلبورو أحمر (Marlboro Red)', quantityPacks: 200 }, // 20 خرطوشة
@@ -421,8 +421,8 @@ export const INITIAL_REPRESENTATIVES: Representative[] = [
     name: 'محمود المندوب (سيارة 2 - خط الجيزة)',
     phone: '01122334455',
     vehicleNo: 'ط ي ر 5678',
-    cashOnHand: 8200,
-    totalSales: 31000,
+    cashOnHand: 0,
+    totalSales: 0,
     assignedStock: [
       { productId: 'prod-5', productName: 'إل أند إم أزرق (L&M Blue)', quantityPacks: 300 },
       { productId: 'prod-7', productName: 'وينستون أزرق (Winston Blue)', quantityPacks: 150 },

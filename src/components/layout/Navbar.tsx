@@ -33,9 +33,22 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileMenu }) => {
   } = useERP();
 
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const userDropdownRef = React.useRef<HTMLDivElement>(null);
   const [targetUserForSwitch, setTargetUserForSwitch] = useState<SystemUser | null>(null);
   const [switchPassword, setSwitchPassword] = useState('');
   const [switchError, setSwitchError] = useState('');
+
+  // Close user dropdown when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userDropdownRef.current && !userDropdownRef.current.contains(event.target as Node)) {
+        setShowUserDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -231,8 +244,11 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileMenu }) => {
           )}
 
           {/* Active User Switcher */}
-          <div className="relative group">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800/90 border border-slate-700/80 hover:border-amber-500/40 cursor-pointer transition-all">
+          <div className="relative" ref={userDropdownRef}>
+            <div
+              onClick={() => setShowUserDropdown((prev) => !prev)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800/90 border border-slate-700/80 hover:border-amber-500/40 cursor-pointer transition-all active:scale-95 select-none"
+            >
               <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${currentUser.avatarColor} flex items-center justify-center text-white font-bold text-sm shadow`}>
                 <User className="w-4 h-4" />
               </div>
@@ -248,55 +264,63 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileMenu }) => {
             </div>
 
             {/* Dropdown Menu */}
-            <div className="absolute left-0 top-full mt-2 w-56 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-2 hidden group-hover:block z-50 animate-fadeIn">
-              <p className="text-[11px] font-bold text-slate-400 px-2 py-1 border-b border-slate-800 mb-1">
-                حساب المستخدم الحالي:
-              </p>
-              {currentUser.role === 'admin' ? (
-                users.map((u) => (
-                  <button
-                    key={u.id}
-                    onClick={() => handleRequestSwitchUser(u)}
-                    className={`w-full text-right flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${u.id === currentUser.id
-                        ? 'bg-amber-500/20 text-amber-300 font-bold'
-                        : 'text-slate-300 hover:bg-slate-800'
-                      }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className={`w-6 h-6 rounded-md bg-gradient-to-br ${u.avatarColor} flex items-center justify-center text-white text-[10px] font-bold`}>
-                        {u.name[0]}
+            {showUserDropdown && (
+              <div className="absolute left-0 top-full mt-2 w-56 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-2 z-50 animate-scaleUp">
+                <p className="text-[11px] font-bold text-slate-400 px-2 py-1 border-b border-slate-800 mb-1">
+                  حساب المستخدم الحالي:
+                </p>
+                {currentUser.role === 'admin' ? (
+                  users.map((u) => (
+                    <button
+                      key={u.id}
+                      onClick={() => {
+                        setShowUserDropdown(false);
+                        handleRequestSwitchUser(u);
+                      }}
+                      className={`w-full text-right flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${u.id === currentUser.id
+                          ? 'bg-amber-500/20 text-amber-300 font-bold'
+                          : 'text-slate-300 hover:bg-slate-800'
+                        }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className={`w-6 h-6 rounded-md bg-gradient-to-br ${u.avatarColor} flex items-center justify-center text-white text-[10px] font-bold`}>
+                          {u.name[0]}
+                        </div>
+                        <span className={u.isDisabled ? 'line-through text-red-400' : ''}>{u.name}</span>
                       </div>
-                      <span className={u.isDisabled ? 'line-through text-red-400' : ''}>{u.name}</span>
-                    </div>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded border ${getRoleBadgeColor(u.role)}`}>
-                      {u.isDisabled ? 'موقف' : getRoleLabel(u.role)}
-                    </span>
-                  </button>
-                ))
-              ) : (
-                <div className="px-2 py-1.5 text-xs font-semibold text-slate-200">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-7 h-7 rounded-lg bg-gradient-to-br ${currentUser.avatarColor} flex items-center justify-center text-white text-xs font-bold`}>
-                      {currentUser.name[0]}
-                    </div>
-                    <div>
-                      <span className="font-bold block text-white">{currentUser.name}</span>
-                      <span className="text-[10px] text-slate-400">@{currentUser.username}</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded border ${getRoleBadgeColor(u.role)}`}>
+                        {u.isDisabled ? 'موقف' : getRoleLabel(u.role)}
+                      </span>
+                    </button>
+                  ))
+                ) : (
+                  <div className="px-2 py-1.5 text-xs font-semibold text-slate-200">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-7 h-7 rounded-lg bg-gradient-to-br ${currentUser.avatarColor} flex items-center justify-center text-white text-xs font-bold`}>
+                        {currentUser.name[0]}
+                      </div>
+                      <div>
+                        <span className="font-bold block text-white">{currentUser.name}</span>
+                        <span className="text-[10px] text-slate-400">@{currentUser.username}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              <div className="pt-2 border-t border-slate-800 mt-2">
-                <button
-                  onClick={logout}
-                  className="w-full py-2 px-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold text-xs flex items-center justify-center gap-2 transition-colors"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span>تسجيل الخروج</span>
-                </button>
+                <div className="pt-2 border-t border-slate-800 mt-2">
+                  <button
+                    onClick={() => {
+                      setShowUserDropdown(false);
+                      logout();
+                    }}
+                    className="w-full py-2 px-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold text-xs flex items-center justify-center gap-2 transition-colors"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>تسجيل الخروج</span>
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           <button

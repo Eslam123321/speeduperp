@@ -29,6 +29,7 @@ export const RepresentativesManager: React.FC = () => {
     transferStockToRep,
     recordRepCollection,
     recordRepVisit,
+    resetRepCash,
     hasUserPermission,
     currentUser,
   } = useERP();
@@ -142,7 +143,22 @@ export const RepresentativesManager: React.FC = () => {
         <div className="flex items-center gap-3">
           <div className="hidden sm:block text-left px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
             <span className="text-xs text-emerald-300 block">إجمالي النقدية بحوزة المندوبين:</span>
-            <strong className="text-base text-emerald-400 font-extrabold">{totalRepCashHeld.toLocaleString('ar-EG')} ج.م</strong>
+            <div className="flex items-center gap-2">
+              <strong className="text-base text-emerald-400 font-extrabold">{totalRepCashHeld.toLocaleString('ar-EG')} ج.م</strong>
+              {totalRepCashHeld > 0 && currentUser.role === 'admin' && (
+                <button
+                  onClick={() => {
+                    if (window.confirm('هل تريد تصفير نقدية جميع المندوبين المتبقية؟')) {
+                      resetRepCash();
+                    }
+                  }}
+                  className="text-[10px] px-2 py-0.5 rounded bg-red-500/20 text-red-300 border border-red-500/30 hover:bg-red-500/30 transition-colors"
+                  title="تصفير نقدية المندوبين"
+                >
+                  تصفير العهدة 🔄
+                </button>
+              )}
+            </div>
           </div>
 
           {hasUserPermission('all') && (
