@@ -211,7 +211,17 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return INITIAL_USERS;
   });
 
-  const [loggedInUser, setLoggedInUser] = useState<SystemUser | null>(null);
+  const [loggedInUser, setLoggedInUser] = useState<SystemUser | null>(() => {
+    const savedSession = sessionStorage.getItem('dukhan_logged_user_session');
+    if (savedSession) {
+      try {
+        return JSON.parse(savedSession);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  });
 
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [printingInvoice, setPrintingInvoice] = useState<SaleInvoice | null>(null);
@@ -449,9 +459,9 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   useEffect(() => {
     if (loggedInUser) {
-      localStorage.setItem('dukhan_logged_user', JSON.stringify(loggedInUser));
+      sessionStorage.setItem('dukhan_logged_user_session', JSON.stringify(loggedInUser));
     } else {
-      localStorage.removeItem('dukhan_logged_user');
+      sessionStorage.removeItem('dukhan_logged_user_session');
     }
   }, [loggedInUser]);
 
@@ -563,7 +573,10 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return { success: true, message: `مرحباً بك، ${found.name}` };
   };
 
-  const logout = () => { setLoggedInUser(null); };
+  const logout = () => {
+    sessionStorage.removeItem('dukhan_logged_user_session');
+    setLoggedInUser(null);
+  };
 
   const createUserAccount = (userData: {
     name: string;
