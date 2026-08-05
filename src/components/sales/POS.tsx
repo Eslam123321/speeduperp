@@ -74,10 +74,11 @@ export const POS: React.FC = () => {
   const [paidAmountInput, setPaidAmountInput] = useState<number>(0);
   const [notes, setNotes] = useState<string>('');
 
-  // Editing Item Price in Cart Modal
+  // Editing Item Price & Item Discount in Cart Modal
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
   const [editPriceInput, setEditPriceInput] = useState<number>(0);
   const [editCostInput, setEditCostInput] = useState<number>(0);
+  const [editDiscountInput, setEditDiscountInput] = useState<number>(0);
 
   // Helper: Open assignment modal for employee
   const handleOpenAssignModal = (empUser: SystemUser) => {
@@ -152,11 +153,12 @@ export const POS: React.FC = () => {
       const updated = [...cartItems];
       const existing = updated[existingIdx];
       const newQty = existing.quantity + 1;
+      const discountVal = existing.discount || 0;
       updated[existingIdx] = {
         ...existing,
         quantity: newQty,
         packsQuantity: newQty * (existing.packsQuantity / existing.quantity),
-        total: newQty * existing.unitPrice,
+        total: Math.max(0, (newQty * existing.unitPrice) - discountVal),
       };
       setCartItems(updated);
     } else {
@@ -169,6 +171,7 @@ export const POS: React.FC = () => {
         packsQuantity,
         unitPrice,
         unitCost,
+        discount: 0,
         total: unitPrice,
       };
       setCartItems([...cartItems, newItem]);
@@ -184,11 +187,12 @@ export const POS: React.FC = () => {
       updated.splice(idx, 1);
     } else {
       const singlePackRatio = item.packsQuantity / item.quantity;
+      const discountVal = item.discount || 0;
       updated[idx] = {
         ...item,
         quantity: newQty,
         packsQuantity: newQty * singlePackRatio,
-        total: newQty * item.unitPrice,
+        total: Math.max(0, (newQty * item.unitPrice) - discountVal),
       };
     }
     setCartItems(updated);
@@ -199,11 +203,12 @@ export const POS: React.FC = () => {
     const item = updated[idx];
     const newQty = Math.max(1, exactQty);
     const singlePackRatio = item.packsQuantity / item.quantity;
+    const discountVal = item.discount || 0;
     updated[idx] = {
       ...item,
       quantity: newQty,
       packsQuantity: newQty * singlePackRatio,
-      total: newQty * item.unitPrice,
+      total: Math.max(0, (newQty * item.unitPrice) - discountVal),
     };
     setCartItems(updated);
   };
@@ -218,6 +223,7 @@ export const POS: React.FC = () => {
     setEditingItemIndex(idx);
     setEditPriceInput(cartItems[idx].unitPrice);
     setEditCostInput(cartItems[idx].unitCost);
+    setEditDiscountInput(cartItems[idx].discount || 0);
   };
 
   const handleSaveItemEdit = () => {
@@ -225,11 +231,13 @@ export const POS: React.FC = () => {
 
     const updated = [...cartItems];
     const item = updated[editingItemIndex];
+    const itemDiscount = Math.max(0, editDiscountInput);
     updated[editingItemIndex] = {
       ...item,
       unitPrice: editPriceInput,
       unitCost: editCostInput,
-      total: item.quantity * editPriceInput,
+      discount: itemDiscount,
+      total: Math.max(0, (item.quantity * editPriceInput) - itemDiscount),
     };
     setCartItems(updated);
     setEditingItemIndex(null);
@@ -720,9 +728,14 @@ export const POS: React.FC = () => {
                     >
                       <div>
                         <span className="font-extrabold text-white block leading-tight">{item.productName}</span>
-                        <span className="text-[10px] text-amber-400 font-bold">
+                        <span className="text-[10px] text-amber-400 font-bold block">
                           {item.unitPrice} ج.م / {item.unitLabel}
                         </span>
+                        {item.discount && item.discount > 0 ? (
+                          <span className="text-[10px] text-emerald-400 font-extrabold block">
+                            خصم صنف: -{item.discount} ج.م
+                          </span>
+                        ) : null}
                       </div>
 
                       <div className="flex items-center gap-2">
@@ -989,6 +1002,19 @@ export const POS: React.FC = () => {
                   value={editPriceInput}
                   onChange={(e) => setEditPriceInput(Number(e.target.value))}
                   className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-amber-400 font-bold focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">خصم خاص بهذا الصنف (ج.م)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={editDiscountInput}
+                  onChange={(e) => setEditDiscountInput(Math.max(0, Number(e.target.value)))}
+                  placeholder="0 ج.م"
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-emerald-400 font-bold focus:outline-none"
                 />
               </div>
 

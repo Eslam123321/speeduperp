@@ -62,6 +62,7 @@ export interface SaleItem {
   packsQuantity: number;  // المعادل بالعلب
   unitPrice: number;      // سعر الوحدة المبيعة بها (قابل للتعديل الفوري)
   unitCost: number;       // تكلفة الوحدة (قابلة للتعديل الفوري)
+  discount?: number;      // خصم خاص بهذا الصنف (ج.م)
   total: number;          // الإجمالي لهذه المادة
 }
 
