@@ -1,5 +1,5 @@
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
-import { getFirestore, doc, setDoc, type Firestore } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, deleteDoc, type Firestore } from 'firebase/firestore';
 import { getDatabase, ref, set, get, onValue, type Database } from 'firebase/database';
 import { getAnalytics, isSupported } from 'firebase/analytics';
 import type { FirebaseConfigInput } from '../types';
@@ -84,6 +84,16 @@ export const syncToFirestore = async (collectionName: string, data: any[]) => {
     }
   } catch (err) {
     console.error(`Firestore Sync Error at ${collectionName}:`, err);
+  }
+};
+
+export const deleteFromFirestore = async (collectionName: string, docId: string) => {
+  if (!db || !docId) return;
+  try {
+    const docRef = doc(db, collectionName, String(docId));
+    await deleteDoc(docRef);
+  } catch (err) {
+    console.error(`Firestore Delete Error at ${collectionName}/${docId}:`, err);
   }
 };
 

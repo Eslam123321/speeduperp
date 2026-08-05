@@ -27,7 +27,7 @@ import {
   INITIAL_REPRESENTATIVES,
   INITIAL_EXPENSES,
 } from '../data/initialData';
-import { initializeFirebaseService, DEFAULT_FIREBASE_CONFIG, syncToFirebase, syncToFirestore, fetchFromFirebase, subscribeToFirebase } from '../services/firebase';
+import { initializeFirebaseService, DEFAULT_FIREBASE_CONFIG, syncToFirebase, syncToFirestore, deleteFromFirestore, fetchFromFirebase, subscribeToFirebase } from '../services/firebase';
 
 interface ERPContextType {
   products: Product[];
@@ -231,17 +231,29 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return saved ? JSON.parse(saved) : [];
   });
 
-  // Automated complete legacy mock data cleanup (wipes legacy mock customers, suppliers, sales, reps, users, 500k capital)
+  // Automated complete legacy mock data cleanup (wipes legacy mock customers, suppliers, sales, reps, users, 500k capital from local state & Firebase)
   React.useEffect(() => {
-    const migratedKey = 'dukhan_clean_all_mock_v6';
+    const migratedKey = 'dukhan_clean_all_mock_v8';
     if (!localStorage.getItem(migratedKey)) {
+      ['usr-2', 'usr-3'].forEach((id) => deleteFromFirestore('users', id));
+      ['cust-1', 'cust-2', 'cust-3', 'cust-4'].forEach((id) => deleteFromFirestore('customers', id));
+      ['supp-1', 'supp-2', 'supp-3'].forEach((id) => deleteFromFirestore('suppliers', id));
+      ['sale-1', 'sale-2'].forEach((id) => deleteFromFirestore('sales', id));
+      ['purch-1'].forEach((id) => deleteFromFirestore('purchases', id));
+      ['rep-1', 'rep-2'].forEach((id) => deleteFromFirestore('representatives', id));
+
       setCustomers((prev) => prev.filter((c) => !['cust-1', 'cust-2', 'cust-3', 'cust-4'].includes(c.id)));
       setSuppliers((prev) => prev.filter((s) => !['supp-1', 'supp-2', 'supp-3'].includes(s.id)));
       setSales((prev) => prev.filter((s) => !['sale-1', 'sale-2'].includes(s.id)));
       setPurchases((prev) => prev.filter((p) => !['purch-1'].includes(p.id)));
       setNotifications((prev) => prev.filter((n) => !['notif-1', 'notif-2', 'notif-3'].includes(n.id)));
       setRepresentatives((prev) => prev.filter((r) => !['rep-1', 'rep-2'].includes(r.id)));
-      setUsers((prev) => prev.filter((u) => !['usr-2', 'usr-3'].includes(u.id)));
+      
+      const cleanUsers = INITIAL_USERS;
+      setUsers(cleanUsers);
+      syncToFirebase('users', cleanUsers);
+      syncToFirestore('users', cleanUsers);
+
       setExpenses([]);
 
       const savedCap = localStorage.getItem('dukhan_capital_cash');
@@ -568,7 +580,12 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteUserAccount = (id: string) => {
-    setUsers((prev) => prev.filter((u) => u.id !== id));
+    deleteFromFirestore('users', id);
+    setUsers((prev) => {
+      const nextUsers = prev.filter((u) => u.id !== id);
+      syncToFirebase('users', nextUsers);
+      return nextUsers;
+    });
   };
 
   const checkLowStockAlerts = (productList: Product[]) => {
