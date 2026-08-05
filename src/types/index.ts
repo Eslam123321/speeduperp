@@ -2,14 +2,11 @@ export type UnitType = 'pack' | 'carton' | 'box';
 
 export type PermissionType =
   | 'all'                 // كافة الصلاحيات المطلقة (مدير عام)
-  | 'pos_sales'           // نقطة البيع والمبيعات (POS)
-  | 'inventory_manage'    // إدارة المخزون والبضاعة
+  | 'pos_sales'           // نقطة البيع (POS)
+  | 'inventory_manage'    // المخزون وأسعار اليوم
   | 'customers_debts'     // حسابات العملاء والديون
-  | 'purchases_suppliers' // المشتريات والموردين
-  | 'representatives'     // المندوبين وسيارات التوزيع
-  | 'expenses'            // المصاريف والتشغيل
-  | 'reports_profits'     // التقارير المالية وصافي الأرباح
-  | 'system_settings';    // إعدادات النظام والمستخدمين
+  | 'reports_profits'     // تقرير إداني وتتبع الأرباح
+  | 'system_settings';    // الإعدادات وإدارة المستخدمين
 
 export interface Product {
   id: string;

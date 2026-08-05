@@ -164,7 +164,7 @@ export const INITIAL_USERS: SystemUser[] = [
     username: 'hossam',
     password: '123',
     role: 'admin',
-    permissions: ['all', 'pos_sales', 'inventory_manage', 'purchases_suppliers', 'customers_debts', 'reports_profits', 'system_settings'],
+    permissions: ['all', 'pos_sales', 'inventory_manage', 'customers_debts', 'reports_profits', 'system_settings'],
     avatarColor: 'from-amber-500 to-yellow-600',
     createdAt: '2026-01-01',
   }

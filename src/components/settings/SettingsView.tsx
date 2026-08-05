@@ -27,14 +27,11 @@ import { ConfirmDeleteModal } from '../common/ConfirmDeleteModal';
 
 const ALL_PERMISSIONS_OPTIONS: { id: PermissionType; label: string; desc: string }[] = [
   { id: 'all', label: 'كافة الصلاحيات المطلقة (مدير عام)', desc: 'وصول شامل لكافة الشاشات والأرباح والمستخدمين والتحليلات' },
-  { id: 'pos_sales', label: 'نقطة البيع والمبيعات (POS)', desc: 'إصدار الفواتير الفورية كاش وآجل وطباعتها' },
-  { id: 'inventory_manage', label: 'إدارة المخزون والبضاعة', desc: 'إضافة أصناف وتعديل كميات المخزون والجرد وأسعار اليوم' },
+  { id: 'pos_sales', label: 'نقطة البيع (POS)', desc: 'إصدار الفواتير الفورية كاش وآجل وطباعتها' },
+  { id: 'inventory_manage', label: 'المخزون وأسعار اليوم', desc: 'إضافة أصناف وتعديل كميات المخزون والجرد' },
   { id: 'customers_debts', label: 'حسابات العملاء والديون', desc: 'متابعة مديونيات محلات التجزئة والتجار وتحصيل المبالغ' },
-  { id: 'purchases_suppliers', label: 'حسابات الموردين وشركات الدخان', desc: 'سداد شركات السجائر وتسجيل فواتير الشراء والتوريد' },
-  { id: 'representatives', label: 'إدارة المندوبين وسيارات التوزيع', desc: 'متابعة ستوك السيارات، عهد المندوبين، وتسجيل الزيارات' },
-  { id: 'expenses', label: 'المصاريف والتشغيل اليومي', desc: 'تسجيل مصاريف السولار والنويل والصيانة والتشغيل' },
-  { id: 'reports_profits', label: 'التقارير المالية وصافي الأرباح', desc: 'الاطلاع على أرباح الفواتير الصافية ورأسمال النشاط وتقرير إداني' },
-  { id: 'system_settings', label: 'إعدادات النظام وإدارة المستخدمين', desc: 'إنشاء وتعديل حسابات المستخدمين والموظفين وتخصيص الصلاحيات' },
+  { id: 'reports_profits', label: 'تقرير إداني وتتبع الأرباح', desc: 'الاطلاع على أرباح الفواتير الصافية ورأسمال النشاط والتقارير' },
+  { id: 'system_settings', label: 'الإعدادات وإدارة المستخدمين', desc: 'إنشاء وتعديل حسابات المستخدمين والموظفين وتخصيص الصلاحيات' },
 ];
 
 export const SettingsView: React.FC = () => {
@@ -133,9 +130,6 @@ export const SettingsView: React.FC = () => {
           'pos_sales',
           'inventory_manage',
           'customers_debts',
-          'purchases_suppliers',
-          'representatives',
-          'expenses',
           'reports_profits',
           'system_settings',
         ];
@@ -234,15 +228,9 @@ export const SettingsView: React.FC = () => {
       case 'pos_sales':
         return <span key={perm} className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold">POS ومبيعات</span>;
       case 'inventory_manage':
-        return <span key={perm} className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[10px] font-bold">المخزون والمنتجات</span>;
+        return <span key={perm} className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[10px] font-bold">المخزون وأسعار اليوم</span>;
       case 'customers_debts':
         return <span key={perm} className="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[10px] font-bold">العملاء والديون</span>;
-      case 'purchases_suppliers':
-        return <span key={perm} className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-bold">المشتريات والموردين</span>;
-      case 'representatives':
-        return <span key={perm} className="px-1.5 py-0.5 rounded bg-teal-500/20 text-teal-300 border border-teal-500/30 text-[10px] font-bold">المندوبين والسيارات</span>;
-      case 'expenses':
-        return <span key={perm} className="px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-300 border border-orange-500/30 text-[10px] font-bold">المصاريف والتشغيل</span>;
       case 'reports_profits':
         return <span key={perm} className="px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 text-[10px] font-bold">الأرباح والتقارير</span>;
       case 'system_settings':
