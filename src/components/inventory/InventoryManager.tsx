@@ -718,7 +718,40 @@ export const InventoryManager: React.FC = () => {
               <span>{editingProduct ? 'تعديل بيانات الصنف' : 'إضافة صنف سجائر جديد'}</span>
             </h2>
 
-            <form onSubmit={handleSaveProduct} className="space-y-3 text-xs">
+            <form onSubmit={handleSaveProduct} className="space-y-3.5 text-xs">
+              {/* Mode Selector for Editing Product at VERY TOP */}
+              {editingProduct && (
+                <div className="bg-slate-950/80 border border-amber-500/30 p-3 rounded-2xl space-y-2">
+                  <span className="font-extrabold text-amber-300 text-xs block">حدد العملية المطلوبة للصنف ({editingProduct.name}):</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditStockMode('add_shipment')}
+                      className={`p-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 border transition-all ${
+                        editStockMode === 'add_shipment'
+                          ? 'bg-amber-500 text-slate-950 border-amber-400 font-extrabold shadow-lg shadow-amber-500/20'
+                          : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>➕ توريد شحنة جديدة بأسعار جديدة</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditStockMode('set_total')}
+                      className={`p-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 border transition-all ${
+                        editStockMode === 'set_total'
+                          ? 'bg-emerald-500 text-slate-950 border-emerald-400 font-extrabold shadow-lg shadow-emerald-500/20'
+                          : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <Edit2 className="w-4 h-4" />
+                      <span>✏️ تعديل رصيد المخزون الكلي</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-slate-300 mb-1">اسم الصنف بالكامل *</label>
@@ -743,19 +776,27 @@ export const InventoryManager: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-300 mb-1">سعر شراء القروصة (ج.م) *</label>
+                  <label className="block font-semibold text-amber-300 mb-1">
+                    {editingProduct && editStockMode === 'add_shipment'
+                      ? 'سعر شراء القروصة للشحنة الجديدة (ج.م) *'
+                      : 'سعر شراء القروصة (ج.م) *'}
+                  </label>
                   <input
                     type="number"
                     step="0.5"
                     required
                     value={formData.costPricePerPack}
                     onChange={(e) => setFormData({ ...formData, costPricePerPack: Number(e.target.value) })}
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white focus:outline-none"
+                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white focus:outline-none font-bold"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-300 mb-1">سعر بيع القروصة (ج.م) *</label>
+                  <label className="block font-semibold text-amber-300 mb-1">
+                    {editingProduct && editStockMode === 'add_shipment'
+                      ? 'سعر بيع القروصة الجديد اليوم (ج.م) *'
+                      : 'سعر بيع القروصة (ج.م) *'}
+                  </label>
                   <input
                     type="number"
                     step="0.5"
@@ -768,7 +809,7 @@ export const InventoryManager: React.FC = () => {
                         retailPricePerPack: Number(e.target.value),
                       })
                     }
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white focus:outline-none"
+                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-amber-400 font-bold focus:outline-none"
                   />
                 </div>
 
@@ -785,10 +826,10 @@ export const InventoryManager: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-amber-300 mb-1">
+                  <label className="block font-extrabold text-emerald-400 mb-1">
                     {editingProduct
                       ? editStockMode === 'add_shipment'
-                        ? 'الكمية الشحنة الجديدة المضافة (بالقروصة)'
+                        ? 'الكمية الشحنة الجديدة المضافة (+ بالقروصة)'
                         : 'إجمالي الكمية بالمخزن الكلي (بالقروصة)'
                       : 'الكمية بالمخزن المبدئية (بالقروصة)'}
                   </label>
@@ -806,73 +847,51 @@ export const InventoryManager: React.FC = () => {
                       })
                     }
                     placeholder="0 قروصة"
-                    className="w-full px-3 py-2 bg-slate-800 border border-amber-500/50 rounded-xl text-emerald-300 font-bold focus:outline-none font-mono"
+                    className="w-full px-3 py-2 bg-slate-800 border-2 border-emerald-500/60 rounded-xl text-emerald-300 font-extrabold text-sm focus:outline-none font-mono"
                   />
                 </div>
               </div>
 
-              {/* Mode Selector for Editing Product */}
-              {editingProduct && (
-                <div className="bg-slate-950/70 border border-slate-800 p-3 rounded-xl space-y-2">
-                  <span className="font-bold text-slate-300 text-xs block">طريقة تحديث المخزون للصنف:</span>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setEditStockMode('add_shipment')}
-                      className={`p-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 border transition-all ${
-                        editStockMode === 'add_shipment'
-                          ? 'bg-amber-500/20 border-amber-500 text-amber-300 shadow-sm'
-                          : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      <Plus className="w-4 h-4 text-amber-400" />
-                      <span>إضافة شحنة جديدة (+)</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setEditStockMode('set_total')}
-                      className={`p-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 border transition-all ${
-                        editStockMode === 'set_total'
-                          ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 shadow-sm'
-                          : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      <Edit2 className="w-4 h-4 text-emerald-400" />
-                      <span>تعديل الرصيد الكلي مباشرة</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-
               {/* Real-time Profit & Margin Summary Box */}
               {(() => {
                 const profitPerCarton = formData.wholesalePricePerPack - formData.costPricePerPack;
+                const oldCartons = editingProduct ? Math.floor(editingProduct.currentStockPacks / (formData.packsPerCarton || 10)) : 0;
                 const totalStockCartons = editingProduct
                   ? editStockMode === 'add_shipment'
-                    ? Math.floor(editingProduct.currentStockPacks / (formData.packsPerCarton || 10)) + formData.initialCartons
+                    ? oldCartons + formData.initialCartons
                     : formData.initialCartons
                   : formData.initialCartons;
                 const totalExpectedProfit = profitPerCarton * totalStockCartons;
 
                 return (
-                  <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border border-emerald-500/30 p-3 rounded-xl flex items-center justify-between text-xs">
-                    <div>
-                      <span className="text-slate-400 block text-[11px]">هامش ربح القروصة الواحدة:</span>
-                      <span className={`font-extrabold text-sm ${profitPerCarton >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                        {profitPerCarton >= 0 ? `+${profitPerCarton.toFixed(1)} ج.م` : `${profitPerCarton.toFixed(1)} ج.م`}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block text-[11px]">إجمالي المخزون النهائي:</span>
-                      <span className="font-extrabold text-amber-400 text-sm font-mono">
-                        {totalStockCartons} قروصة
-                      </span>
-                    </div>
-                    <div className="text-left">
-                      <span className="text-slate-400 block text-[11px]">إجمالي ربح الكمية المتوقع:</span>
-                      <span className="font-extrabold text-emerald-400 text-sm font-mono">
-                        {totalExpectedProfit.toLocaleString('ar-EG')} ج.م
-                      </span>
+                  <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border border-emerald-500/40 p-3.5 rounded-2xl space-y-2 text-xs">
+                    {editingProduct && editStockMode === 'add_shipment' && (
+                      <div className="flex items-center justify-between border-b border-slate-800 pb-2 text-[11px]">
+                        <span className="text-slate-400">الرصيد القديم بالمحل: <strong className="text-amber-400">{oldCartons} قروصة</strong></span>
+                        <span className="text-slate-400">الشحنة الجديدة: <strong className="text-emerald-400">+{formData.initialCartons} قروصة</strong></span>
+                        <span className="text-slate-400">الإجمالي النهائي: <strong className="text-white">{totalStockCartons} قروصة</strong></span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between text-xs">
+                      <div>
+                        <span className="text-slate-400 block text-[11px]">هامش ربح القروصة:</span>
+                        <span className={`font-extrabold text-sm ${profitPerCarton >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {profitPerCarton >= 0 ? `+${profitPerCarton.toFixed(1)} ج.م` : `${profitPerCarton.toFixed(1)} ج.م`}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[11px]">إجمالي المخزون النهائي:</span>
+                        <span className="font-extrabold text-amber-400 text-sm font-mono">
+                          {totalStockCartons} قروصة
+                        </span>
+                      </div>
+                      <div className="text-left">
+                        <span className="text-slate-400 block text-[11px]">إجمالي الربح المتوقع:</span>
+                        <span className="font-extrabold text-emerald-400 text-sm font-mono">
+                          {totalExpectedProfit.toLocaleString('ar-EG')} ج.م
+                        </span>
+                      </div>
                     </div>
                   </div>
                 );

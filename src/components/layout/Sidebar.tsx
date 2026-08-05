@@ -161,9 +161,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
               <span className="font-extrabold text-amber-400 text-sm">{products.length}</span>
             </div>
             <div className="p-2 rounded-xl bg-slate-900 border border-slate-800">
-              <span className="block text-slate-400 text-[10px]">العلب بالمخزن</span>
-              <span className="font-extrabold text-emerald-400 text-sm">
-                {products.reduce((acc, p) => acc + p.currentStockPacks, 0).toLocaleString('ar-EG')}
+              <span className="block text-slate-400 text-[10px]">القراصين بالمخزن</span>
+              <span className="font-extrabold text-emerald-400 text-sm font-mono">
+                {products.reduce((acc, p) => acc + Math.floor(p.currentStockPacks / (p.packsPerCarton || 10)), 0).toLocaleString('ar-EG')} قروصة
               </span>
             </div>
           </div>
