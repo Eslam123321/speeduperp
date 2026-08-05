@@ -211,10 +211,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return INITIAL_USERS;
   });
 
-  const [loggedInUser, setLoggedInUser] = useState<SystemUser | null>(() => {
-    const saved = localStorage.getItem('dukhan_logged_user');
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [loggedInUser, setLoggedInUser] = useState<SystemUser | null>(null);
 
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [printingInvoice, setPrintingInvoice] = useState<SaleInvoice | null>(null);
@@ -1342,7 +1339,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // User Management
   const deleteUser = (id: string) => {
-    setUsers((prev) => prev.filter((u) => u.id !== id));
+    deleteUserAccount(id);
   };
 
   const toggleDisableUser = (id: string) => {

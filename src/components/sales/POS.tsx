@@ -544,23 +544,11 @@ export const POS: React.FC = () => {
                               setPasswordChangeUser(emp);
                               setNewEmployeePassword('');
                             }}
-                            className="py-1.5 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-[11px] flex items-center gap-1"
+                            className="flex-1 py-1.5 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-[11px] flex items-center justify-center gap-1"
                             title="تغيير كلمة السر"
                           >
                             <Edit2 className="w-3 h-3 text-amber-400" />
                             <span>كلمة السر</span>
-                          </button>
-
-                          <button
-                            onClick={() => {
-                              if (confirm(`هل أنت تأكد من حذف حساب الموظف (${emp.name}) نهائياً؟`)) {
-                                deleteUser(emp.id);
-                              }
-                            }}
-                            className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30"
-                            title="حذف الموظف"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       )}
