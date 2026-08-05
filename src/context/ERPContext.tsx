@@ -231,6 +231,23 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return saved ? JSON.parse(saved) : [];
   });
 
+  // Automated legacy representative mock cash cleanup
+  React.useEffect(() => {
+    const migratedKey = 'dukhan_rep_cash_v3_migrated';
+    const isMigrated = localStorage.getItem(migratedKey);
+    if (!isMigrated) {
+      setRepresentatives((prev) =>
+        prev.map((r) => {
+          if (r.cashOnHand === 14500 || r.cashOnHand === 8200 || r.cashOnHand === 22700 || sales.length === 0) {
+            return { ...r, cashOnHand: 0 };
+          }
+          return r;
+        })
+      );
+      localStorage.setItem(migratedKey, 'true');
+    }
+  }, []);
+
   React.useEffect(() => {
     localStorage.setItem('dukhan_employee_assignments', JSON.stringify(employeeAssignments));
   }, [employeeAssignments]);

@@ -29,6 +29,7 @@ export const ReportsView: React.FC = () => {
     currentUser,
     deleteSaleInvoice,
     setPrintingInvoice,
+    resetRepCash,
     initialCapitalCash,
     netTotalCapital,
     inventoryCostCapital,
@@ -151,9 +152,24 @@ export const ReportsView: React.FC = () => {
               <span className="text-xs text-emerald-300 font-bold">3. معايا فلوس كام (نقدية متوفرة)</span>
               <DollarSign className="w-5 h-5 text-emerald-400" />
             </div>
-            <p className="text-2xl font-black text-emerald-400">
-              {grandTotalCashOnHand.toLocaleString('ar-EG')} <span className="text-xs font-semibold">ج.م</span>
-            </p>
+            <div className="flex items-center justify-between">
+              <p className="text-2xl font-black text-emerald-400">
+                {grandTotalCashOnHand.toLocaleString('ar-EG')} <span className="text-xs font-semibold">ج.م</span>
+              </p>
+              {totalCashWithReps > 0 && currentUser.role === 'admin' && (
+                <button
+                  onClick={() => {
+                    if (window.confirm('هل تريد تصفير المبلغ المتبقي مع المندوبين؟')) {
+                      resetRepCash();
+                    }
+                  }}
+                  className="text-[10px] px-2.5 py-1 rounded-lg bg-red-500/20 text-red-300 border border-red-500/40 hover:bg-red-500/30 transition-colors font-bold cursor-pointer"
+                  title="تصفير المبلغ المتبقي مع المندوبين"
+                >
+                  تصفير عهدة المندوبين 🔄
+                </button>
+              )}
+            </div>
             <p className="text-[11px] text-slate-400">
               (الخزينة الرئيسية: {totalNetCashInSafe.toLocaleString('ar-EG')} ج.م + مع المندوبين: {totalCashWithReps.toLocaleString('ar-EG')} ج.م)
             </p>
