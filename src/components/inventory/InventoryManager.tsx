@@ -120,10 +120,10 @@ export const InventoryManager: React.FC = () => {
     const calculatedTotalPacks = (formData.initialCartons * packsPerCarton) + (formData.initialBoxes * packsPerCarton * (formData.cartonsPerBox || 50)) + formData.initialPacks;
 
     const productPayload = {
-      name: formData.name,
-      brand: formData.brand,
+      name: formData.name.trim(),
+      brand: formData.brand.trim() || 'عام',
       category: formData.category,
-      barcode: formData.barcode,
+      barcode: formData.barcode.trim(),
       costPricePerPack: formData.costPricePerPack,
       wholesalePricePerPack: formData.wholesalePricePerPack,
       retailPricePerPack: formData.retailPricePerPack,
@@ -135,9 +135,41 @@ export const InventoryManager: React.FC = () => {
 
     if (editingProduct) {
       updateProduct(editingProduct.id, productPayload);
-    } else {
-      addProduct(productPayload);
+      setShowAddModal(false);
+      return;
     }
+
+    // Check if item already exists by Name or Barcode
+    const existing = products.find(
+      (p) =>
+        p.name.trim().toLowerCase() === formData.name.trim().toLowerCase() ||
+        (formData.barcode.trim() !== '' && p.barcode.trim() === formData.barcode.trim())
+    );
+
+    if (existing) {
+      // Automatic smart restock and price update for existing product!
+      const newTotalStockPacks = existing.currentStockPacks + Math.max(0, calculatedTotalPacks);
+      const addedCartons = formData.initialCartons;
+
+      updateProduct(existing.id, {
+        costPricePerPack: formData.costPricePerPack,
+        wholesalePricePerPack: formData.wholesalePricePerPack,
+        retailPricePerPack: formData.retailPricePerPack,
+        currentStockPacks: newTotalStockPacks,
+        minStockAlertPacks: (formData.minStockAlertCartons || 0) * packsPerCarton,
+      });
+
+      alert(
+        `✨ تم العثور على الصنف (${existing.name}) بالنظام!\n\n` +
+        `✅ تم إضافة الشحنة الجديدة (+${addedCartons} قروصة) للمخزون الحالي بنجاح.\n` +
+        `📦 إجمالي المخزون الجديد: ${Math.floor(newTotalStockPacks / packsPerCarton)} قروصة.\n` +
+        `💲 تم تحديث سعر الشراء إلى (${formData.costPricePerPack} ج.م) وسعر البيع إلى (${formData.wholesalePricePerPack} ج.م).`
+      );
+      setShowAddModal(false);
+      return;
+    }
+
+    addProduct(productPayload);
     setShowAddModal(false);
   };
 
