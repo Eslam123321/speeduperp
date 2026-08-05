@@ -31,7 +31,7 @@ export const LoginPage: React.FC = () => {
           </div>
 
           <h1 className="text-3xl font-black tracking-tight text-white pt-2">
-            الدخان <span className="text-amber-500">ERP</span>
+            حسام <span className="text-amber-500">ERP</span>
           </h1>
           <p className="text-xs text-slate-400 font-medium">
             نظام تتبع المبيعات والمخزون وحسابات التجار والصلاحيات

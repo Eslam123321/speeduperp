@@ -116,7 +116,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileMenu }) => {
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-black text-xl tracking-tight text-white">
-                  الدخان <span className="text-amber-500">ERP</span>
+                  حسام <span className="text-amber-500">ERP</span>
                 </span>
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 font-mono font-bold">
                   v2.5
@@ -257,11 +257,10 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileMenu }) => {
                   <button
                     key={u.id}
                     onClick={() => handleRequestSwitchUser(u)}
-                    className={`w-full text-right flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${
-                      u.id === currentUser.id
+                    className={`w-full text-right flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${u.id === currentUser.id
                         ? 'bg-amber-500/20 text-amber-300 font-bold'
                         : 'text-slate-300 hover:bg-slate-800'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center gap-2">
                       <div className={`w-6 h-6 rounded-md bg-gradient-to-br ${u.avatarColor} flex items-center justify-center text-white text-[10px] font-bold`}>
