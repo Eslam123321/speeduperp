@@ -66,7 +66,10 @@ export const InventoryManager: React.FC = () => {
     initialPacks: 0,
   });
 
+  const [editStockMode, setEditStockMode] = useState<'add_shipment' | 'set_total'>('add_shipment');
+
   const handleOpenAdd = () => {
+    setEditStockMode('add_shipment');
     setFormData({
       name: '',
       brand: 'كليوباترا',
@@ -89,8 +92,8 @@ export const InventoryManager: React.FC = () => {
 
   const handleOpenEdit = (p: Product) => {
     setEditingProduct(p);
+    setEditStockMode('add_shipment');
     const packsPerCarton = p.packsPerCarton || 10;
-    const qaroosaCount = Math.floor(p.currentStockPacks / packsPerCarton);
     const minStockAlertCartons = Math.floor((p.minStockAlertPacks || 0) / packsPerCarton);
 
     setFormData({
@@ -106,7 +109,7 @@ export const InventoryManager: React.FC = () => {
       currentStockPacks: p.currentStockPacks,
       minStockAlertCartons: minStockAlertCartons > 0 ? minStockAlertCartons : (p.minStockAlertPacks || 0),
       initialBoxes: 0,
-      initialCartons: qaroosaCount,
+      initialCartons: 0, // Default 0 for adding new shipment quantity
       initialPacks: 0,
     });
     setShowAddModal(true);
@@ -119,27 +122,48 @@ export const InventoryManager: React.FC = () => {
     const packsPerCarton = formData.packsPerCarton || 10;
     const calculatedTotalPacks = (formData.initialCartons * packsPerCarton) + (formData.initialBoxes * packsPerCarton * (formData.cartonsPerBox || 50)) + formData.initialPacks;
 
-    const productPayload = {
-      name: formData.name.trim(),
-      brand: formData.brand.trim() || 'عام',
-      category: formData.category,
-      barcode: formData.barcode.trim(),
-      costPricePerPack: formData.costPricePerPack,
-      wholesalePricePerPack: formData.wholesalePricePerPack,
-      retailPricePerPack: formData.retailPricePerPack,
-      packsPerCarton,
-      cartonsPerBox: formData.cartonsPerBox || 50,
-      currentStockPacks: Math.max(0, calculatedTotalPacks),
-      minStockAlertPacks: (formData.minStockAlertCartons || 0) * packsPerCarton,
-    };
-
     if (editingProduct) {
-      updateProduct(editingProduct.id, productPayload);
+      let finalTotalPacks = calculatedTotalPacks;
+      if (editStockMode === 'add_shipment') {
+        finalTotalPacks = editingProduct.currentStockPacks + calculatedTotalPacks;
+      }
+
+      // Calculate weighted average cost per pack for 100% accurate profit margins
+      let costPriceToSave = formData.costPricePerPack;
+      if (editStockMode === 'add_shipment' && calculatedTotalPacks > 0 && editingProduct.currentStockPacks > 0) {
+        const oldTotalCost = editingProduct.currentStockPacks * (editingProduct.costPricePerPack || formData.costPricePerPack);
+        const newTotalCost = calculatedTotalPacks * formData.costPricePerPack;
+        costPriceToSave = Number(((oldTotalCost + newTotalCost) / finalTotalPacks).toFixed(2));
+      }
+
+      updateProduct(editingProduct.id, {
+        name: formData.name.trim(),
+        brand: formData.brand.trim() || 'عام',
+        category: formData.category,
+        barcode: formData.barcode.trim(),
+        costPricePerPack: costPriceToSave,
+        wholesalePricePerPack: formData.wholesalePricePerPack,
+        retailPricePerPack: formData.retailPricePerPack,
+        packsPerCarton,
+        cartonsPerBox: formData.cartonsPerBox || 50,
+        currentStockPacks: Math.max(0, finalTotalPacks),
+        minStockAlertPacks: (formData.minStockAlertCartons || 0) * packsPerCarton,
+      });
+
+      const profitPerCarton = (formData.wholesalePricePerPack - costPriceToSave) * packsPerCarton;
+      alert(
+        `✨ تم تحديث بيانات وشحنة الصنف (${editingProduct.name}) بنجاح!\n\n` +
+        `📦 الكمية الكلية بالمخزن الآن: ${Math.floor(finalTotalPacks / packsPerCarton)} قروصة.\n` +
+        `💰 سعر التكلفة المرجح: ${(costPriceToSave * packsPerCarton).toFixed(1)} ج.م للقروصة.\n` +
+        `💲 سعر البيع المعتمد اليوم: ${(formData.wholesalePricePerPack * packsPerCarton).toFixed(1)} ج.م للقروصة.\n` +
+        `📈 هامش الربح المحسوب: ${profitPerCarton.toFixed(1)} ج.م لكل قروصة.`
+      );
+
       setShowAddModal(false);
       return;
     }
 
-    // Check if item already exists by Name or Barcode
+    // Check if item already exists by Name or Barcode when adding new product
     const existing = products.find(
       (p) =>
         p.name.trim().toLowerCase() === formData.name.trim().toLowerCase() ||
@@ -152,7 +176,6 @@ export const InventoryManager: React.FC = () => {
       const addedPacks = Math.max(0, calculatedTotalPacks);
       const totalNewPacks = oldPacks + addedPacks;
 
-      // Weighted Average Cost per Pack for 100% accurate profit margins
       let weightedCostPerPack = formData.costPricePerPack;
       if (totalNewPacks > 0 && oldPacks > 0) {
         const oldTotalCost = oldPacks * (existing.costPricePerPack || formData.costPricePerPack);
@@ -163,8 +186,8 @@ export const InventoryManager: React.FC = () => {
       const addedCartons = formData.initialCartons;
 
       updateProduct(existing.id, {
-        costPricePerPack: weightedCostPerPack, // Weighted average cost per pack
-        wholesalePricePerPack: formData.wholesalePricePerPack, // New selling price
+        costPricePerPack: weightedCostPerPack,
+        wholesalePricePerPack: formData.wholesalePricePerPack,
         retailPricePerPack: formData.retailPricePerPack,
         currentStockPacks: totalNewPacks,
         minStockAlertPacks: (formData.minStockAlertCartons || 0) * packsPerCarton,
@@ -180,6 +203,20 @@ export const InventoryManager: React.FC = () => {
       setShowAddModal(false);
       return;
     }
+
+    const productPayload = {
+      name: formData.name.trim(),
+      brand: formData.brand.trim() || 'عام',
+      category: formData.category,
+      barcode: formData.barcode.trim(),
+      costPricePerPack: formData.costPricePerPack,
+      wholesalePricePerPack: formData.wholesalePricePerPack,
+      retailPricePerPack: formData.retailPricePerPack,
+      packsPerCarton,
+      cartonsPerBox: formData.cartonsPerBox || 50,
+      currentStockPacks: Math.max(0, calculatedTotalPacks),
+      minStockAlertPacks: (formData.minStockAlertCartons || 0) * packsPerCarton,
+    };
 
     addProduct(productPayload);
     setShowAddModal(false);
@@ -748,7 +785,13 @@ export const InventoryManager: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-amber-300 mb-1">الكمية بالمخزن (بالقروصة)</label>
+                  <label className="block font-semibold text-amber-300 mb-1">
+                    {editingProduct
+                      ? editStockMode === 'add_shipment'
+                        ? 'الكمية الشحنة الجديدة المضافة (بالقروصة)'
+                        : 'إجمالي الكمية بالمخزن الكلي (بالقروصة)'
+                      : 'الكمية بالمخزن المبدئية (بالقروصة)'}
+                  </label>
                   <input
                     type="number"
                     min="0"
@@ -763,10 +806,77 @@ export const InventoryManager: React.FC = () => {
                       })
                     }
                     placeholder="0 قروصة"
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-emerald-300 font-bold focus:outline-none"
+                    className="w-full px-3 py-2 bg-slate-800 border border-amber-500/50 rounded-xl text-emerald-300 font-bold focus:outline-none font-mono"
                   />
                 </div>
               </div>
+
+              {/* Mode Selector for Editing Product */}
+              {editingProduct && (
+                <div className="bg-slate-950/70 border border-slate-800 p-3 rounded-xl space-y-2">
+                  <span className="font-bold text-slate-300 text-xs block">طريقة تحديث المخزون للصنف:</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditStockMode('add_shipment')}
+                      className={`p-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 border transition-all ${
+                        editStockMode === 'add_shipment'
+                          ? 'bg-amber-500/20 border-amber-500 text-amber-300 shadow-sm'
+                          : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <Plus className="w-4 h-4 text-amber-400" />
+                      <span>إضافة شحنة جديدة (+)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditStockMode('set_total')}
+                      className={`p-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 border transition-all ${
+                        editStockMode === 'set_total'
+                          ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 shadow-sm'
+                          : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <Edit2 className="w-4 h-4 text-emerald-400" />
+                      <span>تعديل الرصيد الكلي مباشرة</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Real-time Profit & Margin Summary Box */}
+              {(() => {
+                const profitPerCarton = formData.wholesalePricePerPack - formData.costPricePerPack;
+                const totalStockCartons = editingProduct
+                  ? editStockMode === 'add_shipment'
+                    ? Math.floor(editingProduct.currentStockPacks / (formData.packsPerCarton || 10)) + formData.initialCartons
+                    : formData.initialCartons
+                  : formData.initialCartons;
+                const totalExpectedProfit = profitPerCarton * totalStockCartons;
+
+                return (
+                  <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border border-emerald-500/30 p-3 rounded-xl flex items-center justify-between text-xs">
+                    <div>
+                      <span className="text-slate-400 block text-[11px]">هامش ربح القروصة الواحدة:</span>
+                      <span className={`font-extrabold text-sm ${profitPerCarton >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        {profitPerCarton >= 0 ? `+${profitPerCarton.toFixed(1)} ج.م` : `${profitPerCarton.toFixed(1)} ج.م`}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-[11px]">إجمالي المخزون النهائي:</span>
+                      <span className="font-extrabold text-amber-400 text-sm font-mono">
+                        {totalStockCartons} قروصة
+                      </span>
+                    </div>
+                    <div className="text-left">
+                      <span className="text-slate-400 block text-[11px]">إجمالي ربح الكمية المتوقع:</span>
+                      <span className="font-extrabold text-emerald-400 text-sm font-mono">
+                        {totalExpectedProfit.toLocaleString('ar-EG')} ج.م
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
 
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
                 <button
