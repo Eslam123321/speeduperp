@@ -42,6 +42,7 @@ export const POS: React.FC = () => {
     employeeAssignments,
     updateEmployeeAssignment,
     sales,
+    printingInvoice,
     setPrintingInvoice,
   } = useERP();
 
@@ -237,6 +238,17 @@ export const POS: React.FC = () => {
   const rawCartTotal = cartItems.reduce((acc, item) => acc + item.total, 0);
   const finalCartTotal = Math.max(0, rawCartTotal - discount);
 
+  // Clear POS cart once an invoice is confirmed and saved (isDraft is false)
+  React.useEffect(() => {
+    if (printingInvoice && !printingInvoice.isDraft && cartItems.length > 0) {
+      setCartItems([]);
+      setDiscount(0);
+      setPaidAmountInput(0);
+      setSelectedRepId('');
+      setNotes('');
+    }
+  }, [printingInvoice]);
+
   const handleCheckout = () => {
     if (cartItems.length === 0) return;
 
@@ -246,23 +258,43 @@ export const POS: React.FC = () => {
     const customerName = customer ? customer.name : 'عميل نقدي (كاش)';
     const representativeName = rep ? rep.name : undefined;
 
-    createSaleInvoice({
+    let totalCost = 0;
+    let totalAmount = 0;
+
+    cartItems.forEach((item) => {
+      totalCost += item.unitCost * item.quantity;
+      totalAmount += item.total;
+    });
+
+    const finalAmount = Math.max(0, totalAmount - discount);
+    const netProfit = finalAmount - totalCost;
+    const actualPaid = paymentMethod === 'cash' ? finalAmount : Math.min(paidAmountInput, finalAmount);
+    const remainingAmount = Math.max(0, finalAmount - actualPaid);
+
+    const draftInvoice = {
+      id: `draft-${Date.now()}`,
+      invoiceNumber: `INV-2026-${String(sales.length + 1001)}`,
+      date: new Date().toLocaleString('ar-EG'),
       customerId: selectedCustomerId || undefined,
       customerName,
       representativeId: selectedRepId || undefined,
       representativeName,
-      items: cartItems,
+      items: [...cartItems],
+      totalCost,
+      totalAmount,
       discount,
+      finalAmount,
+      netProfit,
       paymentMethod,
-      paidAmount: paymentMethod === 'cash' ? finalCartTotal : paidAmountInput,
+      paidAmount: actualPaid,
+      remainingAmount,
+      createdByRole: currentUser.role,
+      createdByName: currentUser.name,
       notes,
-    });
+      isDraft: true,
+    };
 
-    setCartItems([]);
-    setDiscount(0);
-    setPaidAmountInput(0);
-    setSelectedRepId('');
-    setNotes('');
+    setPrintingInvoice(draftInvoice);
   };
 
   // Employees List (Filter for logged in non-admin employee to only see their own card)

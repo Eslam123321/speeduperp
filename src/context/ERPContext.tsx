@@ -85,6 +85,8 @@ interface ERPContextType {
     paidAmount: number;
     notes?: string;
   }) => SaleInvoice;
+  confirmSaleInvoice: (draft: SaleInvoice) => SaleInvoice;
+  cancelDraftInvoice: () => void;
   deleteSaleInvoice: (id: string) => void;
 
   // Purchase Operations
@@ -700,6 +702,26 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return newInvoice;
   };
 
+  const confirmSaleInvoice = (draft: SaleInvoice): SaleInvoice => {
+    const savedInvoice = createSaleInvoice({
+      customerId: draft.customerId,
+      customerName: draft.customerName,
+      representativeId: draft.representativeId,
+      representativeName: draft.representativeName,
+      items: draft.items,
+      discount: draft.discount,
+      paymentMethod: draft.paymentMethod,
+      paidAmount: draft.paidAmount,
+      notes: draft.notes,
+    });
+    setPrintingInvoice(savedInvoice);
+    return savedInvoice;
+  };
+
+  const cancelDraftInvoice = () => {
+    setPrintingInvoice(null);
+  };
+
   const deleteSaleInvoice = (id: string) => {
     setSales((prev) => prev.filter((s) => s.id !== id));
   };
@@ -1135,6 +1157,8 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         adjustStock,
         bulkUpdatePrices,
         createSaleInvoice,
+        confirmSaleInvoice,
+        cancelDraftInvoice,
         deleteSaleInvoice,
         createPurchaseInvoice,
         deletePurchaseInvoice,

@@ -10,23 +10,34 @@ interface InvoicePrintModalProps {
 }
 
 export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({ invoice, onClose }) => {
-  const { customers, getWhatsAppShareUrl } = useERP();
+  const { customers, getWhatsAppShareUrl, confirmSaleInvoice, cancelDraftInvoice } = useERP();
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   if (!invoice) return null;
 
   const handlePrint = () => {
+    if (invoice.isDraft) {
+      confirmSaleInvoice(invoice);
+    }
     window.print();
+  };
+
+  const ensureInvoiceSaved = (): SaleInvoice => {
+    if (invoice.isDraft) {
+      return confirmSaleInvoice(invoice);
+    }
+    return invoice;
   };
 
   const handleWhatsAppSend = async () => {
     try {
       setIsGeneratingPDF(true);
-      const customer = customers.find((c) => c.id === invoice.customerId);
+      const activeInvoice = ensureInvoiceSaved();
+      const customer = customers.find((c) => c.id === activeInvoice.customerId);
       const phone = customer ? customer.phone : '';
 
       await shareInvoiceViaWhatsApp({
-        invoice,
+        invoice: activeInvoice,
         phone,
         elementId: 'printable-invoice-area',
         getWhatsAppShareUrl,
@@ -42,7 +53,8 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({ invoice, o
   const handleDownloadPDF = async () => {
     try {
       setIsGeneratingPDF(true);
-      const cleanInvoiceNum = invoice.invoiceNumber.replace(/[^a-zA-Z0-9-]/g, '_');
+      const activeInvoice = ensureInvoiceSaved();
+      const cleanInvoiceNum = activeInvoice.invoiceNumber.replace(/[^a-zA-Z0-9-]/g, '_');
       await downloadInvoicePDF('printable-invoice-area', `فاتورة_${cleanInvoiceNum}.pdf`);
     } catch (err) {
       console.error('Error downloading PDF:', err);
@@ -55,7 +67,8 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({ invoice, o
   const handleDownloadImage = async () => {
     try {
       setIsGeneratingPDF(true);
-      const cleanInvoiceNum = invoice.invoiceNumber.replace(/[^a-zA-Z0-9-]/g, '_');
+      const activeInvoice = ensureInvoiceSaved();
+      const cleanInvoiceNum = activeInvoice.invoiceNumber.replace(/[^a-zA-Z0-9-]/g, '_');
       await downloadInvoiceImage('printable-invoice-area', `فاتورة_${cleanInvoiceNum}.png`);
     } catch (err) {
       console.error('Error downloading Image:', err);
@@ -65,21 +78,47 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({ invoice, o
     }
   };
 
+  const handleConfirmInvoice = () => {
+    if (invoice.isDraft) {
+      confirmSaleInvoice(invoice);
+    } else {
+      onClose();
+    }
+  };
+
+  const handleCloseOrCancel = () => {
+    if (invoice.isDraft) {
+      cancelDraftInvoice();
+    } else {
+      onClose();
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
       <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 my-8 animate-scaleUp no-print-modal">
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b border-slate-800 pb-3 no-print">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-6 h-6 text-emerald-400" />
+            {invoice.isDraft ? (
+              <CheckCircle2 className="w-6 h-6 text-amber-400" />
+            ) : (
+              <CheckCircle2 className="w-6 h-6 text-emerald-400" />
+            )}
             <div>
-              <h2 className="text-base font-extrabold text-white">تم حفظ الفاتورة بنجاح</h2>
-              <p className="text-xs text-slate-400">فاتورة رقم: {invoice.invoiceNumber}</p>
+              <h2 className="text-base font-extrabold text-white">
+                {invoice.isDraft ? 'معاينة ومراجعة الفاتورة قبل الإتمام' : 'تم حفظ وإتمام الفاتورة بنجاح'}
+              </h2>
+              <p className={`text-xs ${invoice.isDraft ? 'text-amber-400 font-bold' : 'text-slate-400'}`}>
+                {invoice.isDraft
+                  ? 'الفاتورة لم تُسجل بعد - اضغط "إتمام الفاتورة" للتأكيد والحفظ'
+                  : `فاتورة رقم: ${invoice.invoiceNumber}`}
+              </p>
             </div>
           </div>
 
           <button
-            onClick={onClose}
+            onClick={handleCloseOrCancel}
             className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
           >
             <X className="w-5 h-5" />
@@ -130,53 +169,54 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({ invoice, o
           <div className="py-3">
             <table className="w-full text-right text-xs">
               <thead>
-                <tr className="border-b border-slate-300 text-slate-600 font-bold">
-                  <th className="py-1">الصنف</th>
-                  <th className="py-1 text-center">الوحدة</th>
-                  <th className="py-1 text-center">الكمية</th>
-                  <th className="py-1 text-left">السعر</th>
-                  <th className="py-1 text-left">الإجمالي</th>
+                <tr className="border-b border-slate-200 text-slate-500 font-bold text-[11px]">
+                  <th className="pb-1.5">الصنف</th>
+                  <th className="pb-1.5">الوحدة</th>
+                  <th className="pb-1.5">الكمية</th>
+                  <th className="pb-1.5">السعر</th>
+                  <th className="pb-1.5 text-left">الإجمالي</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200">
+              <tbody className="divide-y divide-slate-100">
                 {invoice.items.map((item, idx) => (
-                  <tr key={idx}>
+                  <tr key={idx} className="text-slate-800">
                     <td className="py-2 font-semibold text-slate-900">{item.productName}</td>
-                    <td className="py-2 text-center text-slate-600 font-bold">{item.unitLabel}</td>
-                    <td className="py-2 text-center font-extrabold text-slate-900">{item.quantity}</td>
-                    <td className="py-2 text-left text-slate-700">{item.unitPrice.toLocaleString('ar-EG')}</td>
-                    <td className="py-2 text-left font-bold text-slate-900">{item.total.toLocaleString('ar-EG')}</td>
+                    <td className="py-2 text-slate-600">{item.unitLabel}</td>
+                    <td className="py-2 font-bold font-mono">{item.quantity}</td>
+                    <td className="py-2 font-mono">{item.unitPrice.toLocaleString('ar-EG')}</td>
+                    <td className="py-2 text-left font-extrabold font-mono text-slate-900">
+                      {item.total.toLocaleString('ar-EG')}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
 
-          {/* Summary Calculation */}
-          <div className="border-t border-slate-300 pt-3 space-y-1.5 text-xs">
-            {/* Total Items & Total Cartridges Section */}
-            <div className="flex justify-between items-center text-slate-900 bg-slate-100 p-2 rounded-lg mb-1.5 border border-slate-200">
-              <span className="font-extrabold">إجمالي عدد الأصناف بالفاتورة:</span>
-              <strong className="text-amber-800 text-sm font-black">
-                {invoice.items.length} صنف (إجمالي {invoice.items.reduce((acc, item) => acc + item.quantity, 0)} قروصة)
+          {/* Totals Summary */}
+          <div className="border-t border-slate-200 pt-3 space-y-1.5 text-xs font-semibold">
+            <div className="p-2 rounded-lg bg-amber-50 border border-amber-200/80 flex items-center justify-between text-slate-900">
+              <span>إجمالي عدد الأصناف بالفاتورة:</span>
+              <strong className="text-amber-900 font-extrabold text-sm">
+                {invoice.items.length} صنف ({invoice.items.reduce((acc, it) => acc + (it.unit === 'box' ? (it.packsQuantity / 500) : it.unit === 'carton' ? (it.packsQuantity / 10) : it.quantity), 0)} {invoice.items[0]?.unitLabel || 'وحدة'})
               </strong>
             </div>
 
-            <div className="flex justify-between text-slate-600 font-medium">
+            <div className="flex justify-between text-slate-600">
               <span>المجموع قبل الخصم:</span>
               <span>{invoice.totalAmount.toLocaleString('ar-EG')} ج.م</span>
             </div>
 
             {invoice.discount > 0 && (
-              <div className="flex justify-between text-red-600 font-semibold">
+              <div className="flex justify-between text-emerald-600">
                 <span>الخصم الممنوح:</span>
                 <span>-{invoice.discount.toLocaleString('ar-EG')} ج.م</span>
               </div>
             )}
 
-            <div className="flex justify-between text-sm font-black text-slate-900 border-t border-slate-300 pt-1.5">
+            <div className="flex justify-between text-slate-900 text-sm font-black border-t border-slate-200 pt-1">
               <span>إجمالي قيمة المشتريات:</span>
-              <span className="text-base text-amber-700">{invoice.finalAmount.toLocaleString('ar-EG')} ج.م</span>
+              <span className="text-amber-700">{invoice.finalAmount.toLocaleString('ar-EG')} ج.م</span>
             </div>
 
             <div className="flex justify-between text-slate-700 pt-1">
@@ -199,7 +239,7 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({ invoice, o
           </div>
         </div>
 
-        {/* Action Buttons: Print, Download PDF & WhatsApp PDF */}
+        {/* Action Buttons */}
         <div className="flex flex-wrap items-center justify-between gap-3 pt-2 no-print">
           <div className="flex items-center gap-2">
             <button
@@ -212,52 +252,50 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({ invoice, o
               ) : (
                 <MessageSquareShare className="w-4 h-4" />
               )}
-              <span>إرسال الفاتورة PDF عبر واتساب</span>
+              <span>إرسال PDF</span>
             </button>
 
             <button
               onClick={handleDownloadPDF}
               disabled={isGeneratingPDF}
               className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:bg-slate-900 text-slate-200 hover:text-white font-semibold border border-slate-700 transition-all text-xs cursor-pointer"
-              title="تحميل ملف PDF للمستند"
             >
               {isGeneratingPDF ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <Download className="w-4 h-4 text-blue-400" />
               )}
-              <span>تحميل PDF</span>
+              <span>PDF</span>
             </button>
 
             <button
               onClick={handleDownloadImage}
               disabled={isGeneratingPDF}
               className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:bg-slate-900 text-slate-200 hover:text-white font-semibold border border-slate-700 transition-all text-xs cursor-pointer"
-              title="تصدير وحفظ الفاتورة كصورة عالية الجودة"
             >
               {isGeneratingPDF ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <ImageIcon className="w-4 h-4 text-amber-400" />
               )}
-              <span>حفظ كصورة</span>
+              <span>صورة</span>
             </button>
           </div>
 
           <div className="flex items-center gap-2">
             <button
-              onClick={onClose}
+              onClick={handleCloseOrCancel}
               className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:bg-slate-800 cursor-pointer"
             >
               إغلاق
             </button>
 
             <button
-              onClick={onClose}
+              onClick={handleConfirmInvoice}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-lg shadow-emerald-600/20 transition-all text-xs cursor-pointer"
             >
               <CheckCircle2 className="w-4 h-4" />
-              <span>إتمام الفاتورة</span>
+              <span>{invoice.isDraft ? 'إتمام الفاتورة' : 'تم الإتمام'}</span>
             </button>
           </div>
         </div>

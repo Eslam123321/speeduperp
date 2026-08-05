@@ -85,6 +85,7 @@ export interface SaleInvoice {
   createdByRole: 'admin' | 'inventory_manager' | 'cashier' | 'custom';
   createdByName: string;
   notes?: string;
+  isDraft?: boolean;
 }
 
 export interface PurchaseItem {
