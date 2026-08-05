@@ -196,9 +196,16 @@ export const CustomerAccounts: React.FC = () => {
       {/* Customer Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredCustomers.map((cust) => {
-          const custInvoices = sales.filter((s) => s.customerId === cust.id);
-          const totalPurchases = custInvoices.reduce((acc, s) => acc + s.finalAmount, 0);
-          const totalPaid = custInvoices.reduce((acc, s) => acc + s.paidAmount, 0);
+          const custSales = sales.filter((s) => s.customerId === cust.id);
+          const latestSaleTime = custSales.length > 0
+            ? Math.max(...custSales.map((s) => new Date(s.date).getTime()))
+            : 0;
+          const diffDaysInactive = latestSaleTime > 0
+            ? Math.floor((Date.now() - latestSaleTime) / (1000 * 3600 * 24))
+            : 0;
+
+          const totalPurchases = custSales.reduce((acc, s) => acc + s.finalAmount, 0);
+          const totalPaid = custSales.reduce((acc, s) => acc + s.paidAmount, 0);
 
           return (
             <div
@@ -209,9 +216,17 @@ export const CustomerAccounts: React.FC = () => {
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <h3 className="font-extrabold text-base text-white">{cust.name}</h3>
-                    <span className="text-xs text-amber-400 font-semibold">
-                      {cust.type === 'retail' ? 'محل تجزئة' : cust.type === 'wholesale' ? 'تاجر جملة' : 'موزع إقليمي'}
-                    </span>
+                    <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                      <span className="text-xs text-amber-400 font-semibold">
+                        {cust.type === 'retail' ? 'محل تجزئة' : cust.type === 'wholesale' ? 'تاجر جملة' : 'موزع إقليمي'}
+                      </span>
+                      {diffDaysInactive >= 3 && (
+                        <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">
+                          <AlertTriangle className="w-3 h-3 text-amber-400" />
+                          <span>متوقف عن الشراء منذ {diffDaysInactive} أيام</span>
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-1.5">
