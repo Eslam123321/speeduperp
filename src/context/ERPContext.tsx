@@ -554,6 +554,20 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const updated = [newProduct, ...products];
     setProducts(updated);
     checkLowStockAlerts(updated);
+
+    const userLabel = currentUser ? currentUser.name : 'المستخدم';
+    setNotifications((prev) => [
+      {
+        id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        title: `إضافة صنف جديد بالمخزن`,
+        message: `قام الموظف (${userLabel}) بإضافة صنف جديد بالمخزن: (${productData.name}) بـ ${productData.currentStockPacks} علبة.`,
+        type: 'info',
+        timestamp: new Date().toLocaleString('ar-EG'),
+        read: false,
+        productId: newProduct.id,
+      },
+      ...prev,
+    ]);
   };
 
   const updateProduct = (id: string, productData: Partial<Product>) => {
@@ -567,6 +581,9 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const adjustStock = (productId: string, changePacks: number, _reason: string) => {
+    const targetProduct = products.find((p) => p.id === productId);
+    const prodName = targetProduct ? targetProduct.name : 'صنف بالمخزن';
+
     const updated = products.map((p) => {
       if (p.id === productId) {
         const newStock = Math.max(0, p.currentStockPacks + changePacks);
@@ -576,6 +593,21 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
     setProducts(updated);
     checkLowStockAlerts(updated);
+
+    const actionStr = changePacks >= 0 ? `زيادة بمقدار ${changePacks}` : `خصم بمقدار ${Math.abs(changePacks)}`;
+    const userLabel = currentUser ? currentUser.name : 'المستخدم';
+    setNotifications((prev) => [
+      {
+        id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        title: `تعديل وتكتيك مخزون`,
+        message: `قام الموظف (${userLabel}) بتعديل مخزون (${prodName}) (${actionStr} علبة). السبب: ${_reason || 'تسوية مخزنية'}.`,
+        type: 'info',
+        timestamp: new Date().toLocaleString('ar-EG'),
+        read: false,
+        productId,
+      },
+      ...prev,
+    ]);
   };
 
   const bulkUpdatePrices = (updates: { productId: string; costPricePerPack?: number; wholesalePricePerPack?: number; retailPricePerPack?: number }[]) => {
@@ -723,6 +755,21 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       );
     }
 
+    // Push real-time transaction notification for Admin
+    const userLabel = currentUser ? currentUser.name : 'المستخدم';
+    setNotifications((prev) => [
+      {
+        id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        title: `فاتورة مبيعات جديدة (${newInvoice.invoiceNumber})`,
+        message: `قام الموظف (${userLabel}) بإنشاء فاتورة مبيعات رقم (${newInvoice.invoiceNumber}) بقيمة ${finalAmount.toLocaleString('ar-EG')} ج.م للعميل (${customerName}).`,
+        type: 'info',
+        timestamp: new Date().toLocaleString('ar-EG'),
+        read: false,
+        saleId: newInvoice.id,
+      },
+      ...prev,
+    ]);
+
     return newInvoice;
   };
 
@@ -858,6 +905,19 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       );
     }
 
+    const userLabel = currentUser ? currentUser.name : 'المستخدم';
+    setNotifications((prev) => [
+      {
+        id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        title: `فاتورة توريد وبضاعة جديدة (${newPurchase.invoiceNumber})`,
+        message: `قام الموظف (${userLabel}) بتسجيل فاتورة مشتريات وتوريد رقم (${newPurchase.invoiceNumber}) بقيمة ${totalAmount.toLocaleString('ar-EG')} ج.م من المورد (${supplierName}).`,
+        type: 'info',
+        timestamp: new Date().toLocaleString('ar-EG'),
+        read: false,
+      },
+      ...prev,
+    ]);
+
     setPurchases((prev) => [newPurchase, ...prev]);
     return newPurchase;
   };
@@ -914,14 +974,18 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       );
     }
 
+    const userLabel = currentUser ? currentUser.name : 'المستخدم';
+    const custObj = customers.find((c) => c.id === customerId);
+    const custName = custObj ? custObj.name : 'العميل';
     setNotifications((prev) => [
       {
         id: `notif-${Date.now()}`,
-        title: 'تم تسجيل دفعة عميل',
-        message: `تم تحصيل مبلغ ${amount.toLocaleString('ar-EG')} ج.م من العميل. ${notes || ''}`,
+        title: 'تحصيل دفعة مالية من عميل',
+        message: `قام الموظف (${userLabel}) بتحصيل مبلغ ${amount.toLocaleString('ar-EG')} ج.م من العميل (${custName}). ${notes || ''}`,
         type: 'info',
         timestamp: new Date().toLocaleString('ar-EG'),
         read: false,
+        customerId,
       },
       ...prev,
     ]);
@@ -957,11 +1021,14 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       })
     );
 
+    const userLabel = currentUser ? currentUser.name : 'المستخدم';
+    const suppObj = suppliers.find((s) => s.id === supplierId);
+    const suppName = suppObj ? suppObj.name : 'المورد';
     setNotifications((prev) => [
       {
         id: `notif-${Date.now()}`,
-        title: 'تم سداد دفعة لمورد',
-        message: `تم دفع مبلغ ${amount.toLocaleString('ar-EG')} ج.م للمورد. ${notes || ''}`,
+        title: 'سداد دفعة مالية لمورد',
+        message: `قام الموظف (${userLabel}) بسداد مبلغ ${amount.toLocaleString('ar-EG')} ج.م للمورد (${suppName}). ${notes || ''}`,
         type: 'info',
         timestamp: new Date().toLocaleString('ar-EG'),
         read: false,
@@ -1018,6 +1085,21 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return r;
       })
     );
+
+    const userLabel = currentUser ? currentUser.name : 'المستخدم';
+    const repObj = representatives.find((r) => r.id === repId);
+    const repName = repObj ? repObj.name : 'المندوب';
+    setNotifications((prev) => [
+      {
+        id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        title: `تحويل بضاعة لسيارة مندوب`,
+        message: `قام الموظف (${userLabel}) بتحويل ${quantityPacks} علبة من (${product.name}) لسيارة المندوب (${repName}).`,
+        type: 'info',
+        timestamp: new Date().toLocaleString('ar-EG'),
+        read: false,
+      },
+      ...prev,
+    ]);
 
     return { success: true, message: `تم تحويل ${quantityPacks} علبة من (${product.name}) إلى عهدة المندوب بنجاح!` };
   };
@@ -1088,6 +1170,19 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       createdByName: currentUser.name,
     };
     setExpenses((prev) => [newExpense, ...prev]);
+
+    const userLabel = currentUser ? currentUser.name : 'المستخدم';
+    setNotifications((prev) => [
+      {
+        id: `notif-${Date.now()}`,
+        title: 'تسجيل مصروف جديد',
+        message: `قام الموظف (${userLabel}) بتسجيل مصروف (${expenseData.title}) بقيمة ${expenseData.amount.toLocaleString('ar-EG')} ج.م.`,
+        type: 'info',
+        timestamp: new Date().toLocaleString('ar-EG'),
+        read: false,
+      },
+      ...prev,
+    ]);
   };
 
   const deleteExpense = (id: string) => {
