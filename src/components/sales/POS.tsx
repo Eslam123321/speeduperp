@@ -101,6 +101,20 @@ export const POS: React.FC = () => {
 
   const handleSaveEmployeeAssignment = () => {
     if (!assigningUser) return;
+
+    for (const [prodId, qtyCartons] of Object.entries(assignedProductsForm)) {
+      if (qtyCartons > 0) {
+        const prod = products.find((p) => p.id === prodId);
+        if (prod) {
+          const mainWarehouseCartons = Math.floor(prod.currentStockPacks / (prod.packsPerCarton || 10));
+          if (qtyCartons > mainWarehouseCartons) {
+            alert(`⚠️ الكمية غير متوفرة بالمخزن الرئيسي!\nالصنف: (${prod.name})\nالكمية المتاحة حالياً بالمخزن: ${mainWarehouseCartons} قروصة فقط.\nالكمية المطلوبة للموظف: ${qtyCartons} قروصة.`);
+            return;
+          }
+        }
+      }
+    }
+
     const assignedProducts: EmployeeStockItem[] = Object.entries(assignedProductsForm)
       .filter(([_, qtyCartons]) => qtyCartons > 0)
       .map(([prodId, qtyCartons]) => {
@@ -938,13 +952,24 @@ export const POS: React.FC = () => {
                           <input
                             type="number"
                             min="0"
+                            max={Math.floor(p.currentStockPacks / (p.packsPerCarton || 10))}
                             value={qtyCartons}
-                            onChange={(e) =>
-                              setAssignedProductsForm({
-                                ...assignedProductsForm,
-                                [p.id]: Math.max(0, Number(e.target.value)),
-                              })
-                            }
+                            onChange={(e) => {
+                              const inputVal = Math.max(0, Number(e.target.value));
+                              const mainCartons = Math.floor(p.currentStockPacks / (p.packsPerCarton || 10));
+                              if (inputVal > mainCartons) {
+                                alert(`⚠️ غير متوفر بالمخزن الرئيسي أكثر من (${mainCartons} قروصة) لصنف (${p.name})!`);
+                                setAssignedProductsForm({
+                                  ...assignedProductsForm,
+                                  [p.id]: mainCartons,
+                                });
+                              } else {
+                                setAssignedProductsForm({
+                                  ...assignedProductsForm,
+                                  [p.id]: inputVal,
+                                });
+                              }
+                            }}
                             placeholder="0 قروصة"
                             className="w-24 px-2 py-1 bg-slate-800 border border-slate-700 rounded-lg text-emerald-400 font-bold text-xs focus:outline-none font-mono text-center"
                           />
