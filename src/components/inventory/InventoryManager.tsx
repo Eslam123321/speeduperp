@@ -128,21 +128,13 @@ export const InventoryManager: React.FC = () => {
         finalTotalPacks = editingProduct.currentStockPacks + calculatedTotalPacks;
       }
 
-      // Calculate weighted average cost per pack for 100% accurate profit margins
-      let costPriceToSave = formData.costPricePerPack;
-      if (editStockMode === 'add_shipment' && calculatedTotalPacks > 0 && editingProduct.currentStockPacks > 0) {
-        const oldTotalCost = editingProduct.currentStockPacks * (editingProduct.costPricePerPack || formData.costPricePerPack);
-        const newTotalCost = calculatedTotalPacks * formData.costPricePerPack;
-        costPriceToSave = Number(((oldTotalCost + newTotalCost) / finalTotalPacks).toFixed(2));
-      }
-
       updateProduct(editingProduct.id, {
         name: formData.name.trim(),
         brand: formData.brand.trim() || 'عام',
         category: formData.category,
         barcode: formData.barcode.trim(),
-        costPricePerPack: costPriceToSave,
-        wholesalePricePerPack: formData.wholesalePricePerPack,
+        costPricePerPack: formData.costPricePerPack, // Direct exact cost price
+        wholesalePricePerPack: formData.wholesalePricePerPack, // Direct exact selling price
         retailPricePerPack: formData.retailPricePerPack,
         packsPerCarton,
         cartonsPerBox: formData.cartonsPerBox || 50,
@@ -150,12 +142,12 @@ export const InventoryManager: React.FC = () => {
         minStockAlertPacks: (formData.minStockAlertCartons || 0) * packsPerCarton,
       });
 
-      const profitPerCarton = (formData.wholesalePricePerPack - costPriceToSave) * packsPerCarton;
+      const profitPerCarton = (formData.wholesalePricePerPack - formData.costPricePerPack) * packsPerCarton;
       alert(
         `✨ تم تحديث بيانات وشحنة الصنف (${editingProduct.name}) بنجاح!\n\n` +
         `📦 الكمية الكلية بالمخزن الآن: ${Math.floor(finalTotalPacks / packsPerCarton)} قروصة.\n` +
-        `💰 سعر التكلفة المرجح: ${(costPriceToSave * packsPerCarton).toFixed(1)} ج.م للقروصة.\n` +
-        `💲 سعر البيع المعتمد اليوم: ${(formData.wholesalePricePerPack * packsPerCarton).toFixed(1)} ج.م للقروصة.\n` +
+        `💰 سعر شراء القروصة المعتمد: ${formData.costPricePerPack} ج.م.\n` +
+        `💲 سعر بيع القروصة المعتمد اليوم: ${formData.wholesalePricePerPack} ج.م.\n` +
         `📈 هامش الربح المحسوب: ${profitPerCarton.toFixed(1)} ج.م لكل قروصة.`
       );
 
@@ -171,22 +163,13 @@ export const InventoryManager: React.FC = () => {
     );
 
     if (existing) {
-      // Automatic smart restock, weighted average cost calculation & price update!
       const oldPacks = existing.currentStockPacks;
       const addedPacks = Math.max(0, calculatedTotalPacks);
       const totalNewPacks = oldPacks + addedPacks;
-
-      let weightedCostPerPack = formData.costPricePerPack;
-      if (totalNewPacks > 0 && oldPacks > 0) {
-        const oldTotalCost = oldPacks * (existing.costPricePerPack || formData.costPricePerPack);
-        const newTotalCost = addedPacks * formData.costPricePerPack;
-        weightedCostPerPack = Number(((oldTotalCost + newTotalCost) / totalNewPacks).toFixed(2));
-      }
-
       const addedCartons = formData.initialCartons;
 
       updateProduct(existing.id, {
-        costPricePerPack: weightedCostPerPack,
+        costPricePerPack: formData.costPricePerPack,
         wholesalePricePerPack: formData.wholesalePricePerPack,
         retailPricePerPack: formData.retailPricePerPack,
         currentStockPacks: totalNewPacks,
@@ -194,11 +177,11 @@ export const InventoryManager: React.FC = () => {
       });
 
       alert(
-        `✨ تم العثور على الصنف (${existing.name}) بالنظام وتحديثه لحساب الأرباح بدقة 100%!\n\n` +
+        `✨ تم العثور على الصنف (${existing.name}) بالنظام وتحديث أسعاره ومخزونه بنجاح!\n\n` +
         `✅ تم إضافة الشحنة الجديدة (+${addedCartons} قروصة) للمخزون الحالي.\n` +
         `📦 إجمالي المخزون الجديد بالمحل: ${Math.floor(totalNewPacks / packsPerCarton)} قروصة.\n` +
-        `💰 سعر تكلفة الشراء المرجح جديداً: ${(weightedCostPerPack * packsPerCarton).toFixed(1)} ج.م للقروصة.\n` +
-        `💲 سعر بيع القروصة الجديد: ${(formData.wholesalePricePerPack * packsPerCarton).toFixed(1)} ج.م.`
+        `💰 سعر شراء القروصة المعتمد: ${formData.costPricePerPack} ج.م.\n` +
+        `💲 سعر بيع القروصة الجديد: ${formData.wholesalePricePerPack} ج.م.`
       );
       setShowAddModal(false);
       return;
