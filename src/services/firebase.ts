@@ -5,14 +5,14 @@ import { getAnalytics, isSupported } from 'firebase/analytics';
 import type { FirebaseConfigInput } from '../types';
 
 export const DEFAULT_FIREBASE_CONFIG: FirebaseConfigInput = {
-  apiKey: "AIzaSyB2IkqgZE8fk79RBkEw5W8VGD38Aq0TI-U",
-  authDomain: "speeduperp.firebaseapp.com",
-  databaseURL: "https://speeduperp-default-rtdb.firebaseio.com",
-  projectId: "speeduperp",
-  storageBucket: "speeduperp.firebasestorage.app",
-  messagingSenderId: "1092085780628",
-  appId: "1:1092085780628:web:02e117815ffb3cfe892481",
-  measurementId: "G-XSDRC509DC"
+  apiKey: "AIzaSyCxBlyCh0yfrD5_COuF1wvCDv6eraVvUdw",
+  authDomain: "speedup-erp-live.firebaseapp.com",
+  databaseURL: "https://speedup-erp-live-default-rtdb.firebaseio.com",
+  projectId: "speedup-erp-live",
+  storageBucket: "speedup-erp-live.firebasestorage.app",
+  messagingSenderId: "148235410650",
+  appId: "1:148235410650:web:b92ca468a2cb9c1d90d9e3",
+  measurementId: "G-XWV1THGB79"
 };
 
 let firebaseApp: FirebaseApp | null = null;
