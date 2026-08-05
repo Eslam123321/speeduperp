@@ -891,64 +891,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteSaleInvoice = (id: string) => {
-    const invoiceToDelete = sales.find((s) => s.id === id);
-    if (!invoiceToDelete) return;
-
-    // 1. Revert product stock in main inventory
-    if (invoiceToDelete.items && invoiceToDelete.items.length > 0) {
-      setProducts((prev) =>
-        prev.map((p) => {
-          const item = invoiceToDelete.items.find((it) => it.productId === p.id);
-          if (item) {
-            return { ...p, currentStockPacks: p.currentStockPacks + item.packsQuantity };
-          }
-          return p;
-        })
-      );
-    }
-
-    // 2. Revert customer debt balance if credit invoice
-    if (invoiceToDelete.customerId && invoiceToDelete.remainingAmount > 0) {
-      setCustomers((prev) =>
-        prev.map((c) =>
-          c.id === invoiceToDelete.customerId
-            ? { ...c, balance: Math.max(0, c.balance - invoiceToDelete.remainingAmount) }
-            : c
-        )
-      );
-    }
-
-    // 3. Revert representative cash, total sales, and assigned stock
-    if (invoiceToDelete.representativeId) {
-      setRepresentatives((prev) =>
-        prev.map((rep) => {
-          if (rep.id === invoiceToDelete.representativeId) {
-            const restoredStock = rep.assignedStock.map((stk) => {
-              const item = invoiceToDelete.items.find((it) => it.productId === stk.productId);
-              if (item) {
-                return { ...stk, quantityPacks: stk.quantityPacks + item.packsQuantity };
-              }
-              return stk;
-            });
-
-            return {
-              ...rep,
-              cashOnHand: Math.max(0, rep.cashOnHand - invoiceToDelete.paidAmount),
-              totalSales: Math.max(0, rep.totalSales - invoiceToDelete.finalAmount),
-              assignedStock: restoredStock,
-            };
-          }
-          return rep;
-        })
-      );
-    }
-
-    // 4. Revert main cash if paid amount was added to cash box
-    if (invoiceToDelete.paidAmount > 0) {
-      setInitialCapitalCashState((prev) => Math.max(0, prev - invoiceToDelete.paidAmount));
-    }
-
-    // Delete invoice from state
+    deleteFromFirestore('sales', id);
     setSales((prev) => prev.filter((s) => s.id !== id));
   };
 

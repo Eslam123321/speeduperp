@@ -147,23 +147,35 @@ export const InventoryManager: React.FC = () => {
     );
 
     if (existing) {
-      // Automatic smart restock and price update for existing product!
-      const newTotalStockPacks = existing.currentStockPacks + Math.max(0, calculatedTotalPacks);
+      // Automatic smart restock, weighted average cost calculation & price update!
+      const oldPacks = existing.currentStockPacks;
+      const addedPacks = Math.max(0, calculatedTotalPacks);
+      const totalNewPacks = oldPacks + addedPacks;
+
+      // Weighted Average Cost per Pack for 100% accurate profit margins
+      let weightedCostPerPack = formData.costPricePerPack;
+      if (totalNewPacks > 0 && oldPacks > 0) {
+        const oldTotalCost = oldPacks * (existing.costPricePerPack || formData.costPricePerPack);
+        const newTotalCost = addedPacks * formData.costPricePerPack;
+        weightedCostPerPack = Number(((oldTotalCost + newTotalCost) / totalNewPacks).toFixed(2));
+      }
+
       const addedCartons = formData.initialCartons;
 
       updateProduct(existing.id, {
-        costPricePerPack: formData.costPricePerPack,
-        wholesalePricePerPack: formData.wholesalePricePerPack,
+        costPricePerPack: weightedCostPerPack, // Weighted average cost per pack
+        wholesalePricePerPack: formData.wholesalePricePerPack, // New selling price
         retailPricePerPack: formData.retailPricePerPack,
-        currentStockPacks: newTotalStockPacks,
+        currentStockPacks: totalNewPacks,
         minStockAlertPacks: (formData.minStockAlertCartons || 0) * packsPerCarton,
       });
 
       alert(
-        `✨ تم العثور على الصنف (${existing.name}) بالنظام!\n\n` +
-        `✅ تم إضافة الشحنة الجديدة (+${addedCartons} قروصة) للمخزون الحالي بنجاح.\n` +
-        `📦 إجمالي المخزون الجديد: ${Math.floor(newTotalStockPacks / packsPerCarton)} قروصة.\n` +
-        `💲 تم تحديث سعر الشراء إلى (${formData.costPricePerPack} ج.م) وسعر البيع إلى (${formData.wholesalePricePerPack} ج.م).`
+        `✨ تم العثور على الصنف (${existing.name}) بالنظام وتحديثه لحساب الأرباح بدقة 100%!\n\n` +
+        `✅ تم إضافة الشحنة الجديدة (+${addedCartons} قروصة) للمخزون الحالي.\n` +
+        `📦 إجمالي المخزون الجديد بالمحل: ${Math.floor(totalNewPacks / packsPerCarton)} قروصة.\n` +
+        `💰 سعر تكلفة الشراء المرجح جديداً: ${(weightedCostPerPack * packsPerCarton).toFixed(1)} ج.م للقروصة.\n` +
+        `💲 سعر بيع القروصة الجديد: ${(formData.wholesalePricePerPack * packsPerCarton).toFixed(1)} ج.م.`
       );
       setShowAddModal(false);
       return;
