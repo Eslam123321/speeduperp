@@ -4,15 +4,12 @@ import {
   ShoppingCart,
   Boxes,
   Users,
-  Building2,
   TrendingUp,
   Bell,
   Settings,
   X,
   AlertTriangle,
   FileSpreadsheet,
-  Truck,
-  Receipt,
 } from 'lucide-react';
 import { useERP } from '../../context/ERPContext';
 import { PermissionType } from '../../types';
@@ -59,24 +56,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
       perm: 'customers_debts' as PermissionType,
     },
     {
-      id: 'suppliers',
-      label: 'حسابات الموردين والشراء',
-      icon: Building2,
-      perm: 'purchases_suppliers' as PermissionType,
-    },
-    {
-      id: 'representatives',
-      label: 'المندوبين وسيارات التوزيع',
-      icon: Truck,
-      perm: 'representatives' as PermissionType,
-    },
-    {
-      id: 'expenses',
-      label: 'المصاريف والتشغيل اليومي',
-      icon: Receipt,
-      perm: 'expenses' as PermissionType,
-    },
-    {
       id: 'reports',
       label: 'تقرير إداني وتتبع الأرباح',
       icon: TrendingUp,
@@ -93,7 +72,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
     },
     {
       id: 'settings',
-      label: 'الإعدادات والمستخدمين',
+      label: 'الإعدادات',
       icon: Settings,
       perm: 'system_settings' as PermissionType,
     },
