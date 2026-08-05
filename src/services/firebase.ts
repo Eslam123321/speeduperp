@@ -103,9 +103,7 @@ export const subscribeToFirebase = (path: string, callback: (data: any) => void)
   if (!rtdb) return () => {};
   const dbRef = ref(rtdb, path);
   return onValue(dbRef, (snapshot) => {
-    if (snapshot.exists()) {
-      callback(snapshot.val());
-    }
+    callback(snapshot.exists() ? snapshot.val() : null);
   });
 };
 

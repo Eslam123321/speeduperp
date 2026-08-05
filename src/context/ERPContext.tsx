@@ -440,19 +440,70 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [loggedInUser]);
 
   useEffect(() => {
+    localStorage.setItem('dukhan_capital_cash', String(initialCapitalCash));
+    syncToFirebase('capital_cash', initialCapitalCash);
+  }, [initialCapitalCash]);
+
+  useEffect(() => {
     const configToUse = firebaseConfig || DEFAULT_FIREBASE_CONFIG;
     const res = initializeFirebaseService(configToUse);
     setFirebaseStatus({ connected: res.success, message: res.message });
 
     if (res.success) {
-      // Realtime live subscription for users so employee logins & permissions sync live across devices!
+      // Realtime live subscriptions for ALL entities across devices (Mobile + Desktop)
+      const unsubProducts = subscribeToFirebase('products', (remote) => {
+        if (Array.isArray(remote) && remote.length > 0) setProducts(remote);
+      });
+      const unsubCustomers = subscribeToFirebase('customers', (remote) => {
+        if (Array.isArray(remote)) setCustomers(remote);
+        else if (remote === null) setCustomers([]);
+      });
+      const unsubSuppliers = subscribeToFirebase('suppliers', (remote) => {
+        if (Array.isArray(remote)) setSuppliers(remote);
+        else if (remote === null) setSuppliers([]);
+      });
+      const unsubSales = subscribeToFirebase('sales', (remote) => {
+        if (Array.isArray(remote)) setSales(remote);
+        else if (remote === null) setSales([]);
+      });
+      const unsubPurchases = subscribeToFirebase('purchases', (remote) => {
+        if (Array.isArray(remote)) setPurchases(remote);
+        else if (remote === null) setPurchases([]);
+      });
+      const unsubReps = subscribeToFirebase('representatives', (remote) => {
+        if (Array.isArray(remote)) setRepresentatives(remote);
+        else if (remote === null) setRepresentatives([]);
+      });
+      const unsubExpenses = subscribeToFirebase('expenses', (remote) => {
+        if (Array.isArray(remote)) setExpenses(remote);
+        else if (remote === null) setExpenses([]);
+      });
+      const unsubNotifications = subscribeToFirebase('notifications', (remote) => {
+        if (Array.isArray(remote)) setNotifications(remote);
+        else if (remote === null) setNotifications([]);
+      });
       const unsubUsers = subscribeToFirebase('users', (remoteUsers) => {
         if (Array.isArray(remoteUsers) && remoteUsers.length > 0) {
           setUsers(remoteUsers);
         }
       });
+      const unsubCapital = subscribeToFirebase('capital_cash', (remoteCap) => {
+        if (typeof remoteCap === 'number') {
+          setInitialCapitalCashState(remoteCap);
+        }
+      });
+
       return () => {
+        unsubProducts();
+        unsubCustomers();
+        unsubSuppliers();
+        unsubSales();
+        unsubPurchases();
+        unsubReps();
+        unsubExpenses();
+        unsubNotifications();
         unsubUsers();
+        unsubCapital();
       };
     }
   }, [firebaseConfig]);
