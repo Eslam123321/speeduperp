@@ -316,8 +316,8 @@ export const POS: React.FC = () => {
     : null;
 
   // Filtered Customers (for Employee POS or Admin POS)
-  const availableCustomers = activeEmployee && activeAssignment
-    ? customers.filter((c) => activeAssignment.assignedCustomerIds.includes(c.id))
+  const availableCustomers = (posMode === 'employee_pos' || currentUser.role !== 'admin')
+    ? (activeAssignment ? customers.filter((c) => (activeAssignment.assignedCustomerIds || []).includes(c.id)) : [])
     : customers;
 
   // Filtered Products (for Employee POS or Admin POS)
@@ -328,9 +328,12 @@ export const POS: React.FC = () => {
       p.barcode.includes(searchQuery);
     const matchesCategory = selectedCategory === 'all' || p.category === selectedCategory;
 
-    if (posMode === 'employee_pos' && activeAssignment) {
+    if (posMode === 'employee_pos' || currentUser.role !== 'admin') {
+      if (!activeAssignment || !activeAssignment.assignedProducts) {
+        return false;
+      }
       const assignedItem = activeAssignment.assignedProducts.find((item) => item.productId === p.id);
-      return matchesQuery && matchesCategory && assignedItem && assignedItem.assignedStockPacks > 0;
+      return matchesQuery && matchesCategory && Boolean(assignedItem && assignedItem.assignedStockPacks > 0);
     }
 
     return matchesQuery && matchesCategory;
@@ -612,17 +615,27 @@ export const POS: React.FC = () => {
             {/* Products Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[600px] overflow-y-auto pr-1">
               {filteredProducts.length === 0 ? (
-                <div className="col-span-full glass-panel p-8 text-center text-slate-400">
-                  <Cigarette className="w-10 h-10 mx-auto mb-2 opacity-50 text-amber-500" />
-                  <p className="font-bold">لا توجد أصناف سجائر متاحة وفقاً للبحث والمصرح بها.</p>
-                </div>
+                (posMode === 'employee_pos' || currentUser.role !== 'admin') && (!activeAssignment || !activeAssignment.assignedProducts || activeAssignment.assignedProducts.length === 0) ? (
+                  <div className="col-span-full glass-panel p-8 text-center space-y-3">
+                    <AlertTriangle className="w-12 h-12 mx-auto text-amber-400 animate-bounce" />
+                    <h3 className="font-extrabold text-base text-white">لم يتم تخصيص أصناف أو عهدة لهذا الموظف حتى الآن</h3>
+                    <p className="text-xs text-slate-400 max-w-md mx-auto">
+                      يرجى التواصل مع المدير العام (حسام حسني) لتخصيص أصناف وبضاعة ومحلات للموظف من خيار "تخصيص الصلاحيات والعهد".
+                    </p>
+                  </div>
+                ) : (
+                  <div className="col-span-full glass-panel p-8 text-center text-slate-400">
+                    <Cigarette className="w-10 h-10 mx-auto mb-2 opacity-50 text-amber-500" />
+                    <p className="font-bold">لا توجد أصناف سجائر متاحة وفقاً للبحث والمصرح بها.</p>
+                  </div>
+                )
               ) : (
                 filteredProducts.map((prod) => {
                   const isLowStock = prod.currentStockPacks <= prod.minStockAlertPacks;
 
                   // If in employee mode, show assigned stock for this employee
                   let displayStockPacks = prod.currentStockPacks;
-                  if (posMode === 'employee_pos' && activeAssignment) {
+                  if ((posMode === 'employee_pos' || currentUser.role !== 'admin') && activeAssignment) {
                     const empStock = activeAssignment.assignedProducts.find((p) => p.productId === prod.id);
                     displayStockPacks = empStock ? empStock.assignedStockPacks : 0;
                   }
@@ -660,7 +673,7 @@ export const POS: React.FC = () => {
                                   : 'text-emerald-400'
                               }`}
                             >
-                              المتاح بالمخزن:
+                              {posMode === 'employee_pos' || currentUser.role !== 'admin' ? 'العهدة المتاحة للموظف:' : 'المتاح بالمخزن:'}
                             </span>
                             <strong className="font-extrabold text-white text-xs font-mono">
                               {Math.floor(displayStockPacks / (prod.packsPerCarton || 10))} قروصة
