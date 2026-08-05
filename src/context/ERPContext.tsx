@@ -222,7 +222,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Capital & Inventory Valuation State
   const [initialCapitalCash, setInitialCapitalCashState] = useState<number>(() => {
     const saved = localStorage.getItem('dukhan_capital_cash');
-    return saved ? Number(saved) : 500000;
+    return saved && saved !== '500000' ? Number(saved) : 0;
   });
 
   // Employee Assignments State
@@ -231,19 +231,24 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return saved ? JSON.parse(saved) : [];
   });
 
-  // Automated legacy representative mock cash cleanup
+  // Automated complete legacy mock data cleanup (wipes legacy mock customers, suppliers, sales, reps, 500k capital)
   React.useEffect(() => {
-    const migratedKey = 'dukhan_rep_cash_v3_migrated';
-    const isMigrated = localStorage.getItem(migratedKey);
-    if (!isMigrated) {
-      setRepresentatives((prev) =>
-        prev.map((r) => {
-          if (r.cashOnHand === 14500 || r.cashOnHand === 8200 || r.cashOnHand === 22700 || sales.length === 0) {
-            return { ...r, cashOnHand: 0 };
-          }
-          return r;
-        })
-      );
+    const migratedKey = 'dukhan_clean_all_mock_v5';
+    if (!localStorage.getItem(migratedKey)) {
+      setCustomers((prev) => prev.filter((c) => !['cust-1', 'cust-2', 'cust-3', 'cust-4'].includes(c.id)));
+      setSuppliers((prev) => prev.filter((s) => !['supp-1', 'supp-2', 'supp-3'].includes(s.id)));
+      setSales((prev) => prev.filter((s) => !['sale-1', 'sale-2'].includes(s.id)));
+      setPurchases((prev) => prev.filter((p) => !['purch-1'].includes(p.id)));
+      setNotifications((prev) => prev.filter((n) => !['notif-1', 'notif-2', 'notif-3'].includes(n.id)));
+      setRepresentatives((prev) => prev.filter((r) => !['rep-1', 'rep-2'].includes(r.id)));
+      setExpenses([]);
+
+      const savedCap = localStorage.getItem('dukhan_capital_cash');
+      if (savedCap === '500000' || !savedCap) {
+        setInitialCapitalCashState(0);
+        localStorage.setItem('dukhan_capital_cash', '0');
+      }
+
       localStorage.setItem(migratedKey, 'true');
     }
   }, []);
@@ -1201,6 +1206,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setExpenses(INITIAL_EXPENSES);
     setUsers(INITIAL_USERS);
     setNotifications(INITIAL_NOTIFICATIONS);
+    setInitialCapitalCashState(0);
     setLoggedInUser(null);
     localStorage.clear();
   };
