@@ -59,6 +59,24 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
       perm: 'customers_debts' as PermissionType,
     },
     {
+      id: 'suppliers',
+      label: 'حسابات الموردين والشراء',
+      icon: Building2,
+      perm: 'purchases_suppliers' as PermissionType,
+    },
+    {
+      id: 'representatives',
+      label: 'المندوبين وسيارات التوزيع',
+      icon: Truck,
+      perm: 'representatives' as PermissionType,
+    },
+    {
+      id: 'expenses',
+      label: 'المصاريف والتشغيل اليومي',
+      icon: Receipt,
+      perm: 'expenses' as PermissionType,
+    },
+    {
       id: 'reports',
       label: 'تقرير إداني وتتبع الأرباح',
       icon: TrendingUp,
@@ -75,7 +93,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
     },
     {
       id: 'settings',
-      label: 'الإعدادات',
+      label: 'الإعدادات والمستخدمين',
       icon: Settings,
       perm: 'system_settings' as PermissionType,
     },

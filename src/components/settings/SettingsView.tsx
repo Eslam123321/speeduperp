@@ -26,13 +26,15 @@ import { FirebaseConfigInput, SystemUser, PermissionType } from '../../types';
 import { ConfirmDeleteModal } from '../common/ConfirmDeleteModal';
 
 const ALL_PERMISSIONS_OPTIONS: { id: PermissionType; label: string; desc: string }[] = [
-  { id: 'all', label: 'كافة الصلاحيات المطلقة (مدير عام)', desc: 'وصول شامل لكافة الشاشات والأرباح والمستخدمين' },
+  { id: 'all', label: 'كافة الصلاحيات المطلقة (مدير عام)', desc: 'وصول شامل لكافة الشاشات والأرباح والمستخدمين والتحليلات' },
   { id: 'pos_sales', label: 'نقطة البيع والمبيعات (POS)', desc: 'إصدار الفواتير الفورية كاش وآجل وطباعتها' },
-  { id: 'inventory_manage', label: 'إدارة المخزون والمنتجات', desc: 'إضافة أصناف وتعديل كميات المخزون والجرد' },
-  { id: 'purchases_suppliers', label: 'المشتريات وفواتير الشركات', desc: 'تسجيل الشراء من شركات السجائر وسداد الموردين' },
-  { id: 'customers_debts', label: 'حسابات التجار وتحصيل الديون', desc: 'متابعة مديونيات العملاء وتسجيل سندات القبض' },
-  { id: 'reports_profits', label: 'التقارير المالية وصافي الأرباح', desc: 'الاطلاع على الأرباح الصافية ورأسمال المخزن' },
-  { id: 'system_settings', label: 'الإعدادات والربط السحابي', desc: 'إلربط مع Firebase والنسخ الاحتياطي والمستخدمين' },
+  { id: 'inventory_manage', label: 'إدارة المخزون والبضاعة', desc: 'إضافة أصناف وتعديل كميات المخزون والجرد وأسعار اليوم' },
+  { id: 'customers_debts', label: 'حسابات العملاء والديون', desc: 'متابعة مديونيات محلات التجزئة والتجار وتحصيل المبالغ' },
+  { id: 'purchases_suppliers', label: 'حسابات الموردين وشركات الدخان', desc: 'سداد شركات السجائر وتسجيل فواتير الشراء والتوريد' },
+  { id: 'representatives', label: 'إدارة المندوبين وسيارات التوزيع', desc: 'متابعة ستوك السيارات، عهد المندوبين، وتسجيل الزيارات' },
+  { id: 'expenses', label: 'المصاريف والتشغيل اليومي', desc: 'تسجيل مصاريف السولار والنويل والصيانة والتشغيل' },
+  { id: 'reports_profits', label: 'التقارير المالية وصافي الأرباح', desc: 'الاطلاع على أرباح الفواتير الصافية ورأسمال النشاط وتقرير إداني' },
+  { id: 'system_settings', label: 'إعدادات النظام وإدارة المستخدمين', desc: 'إنشاء وتعديل حسابات المستخدمين والموظفين وتخصيص الصلاحيات' },
 ];
 
 export const SettingsView: React.FC = () => {
@@ -126,7 +128,17 @@ export const SettingsView: React.FC = () => {
       if (updated.includes('all')) {
         updated = ['pos_sales'];
       } else {
-        updated = ['all', 'pos_sales', 'inventory_manage', 'purchases_suppliers', 'customers_debts', 'reports_profits', 'system_settings'];
+        updated = [
+          'all',
+          'pos_sales',
+          'inventory_manage',
+          'customers_debts',
+          'purchases_suppliers',
+          'representatives',
+          'expenses',
+          'reports_profits',
+          'system_settings',
+        ];
       }
     } else {
       if (updated.includes(perm)) {
@@ -223,12 +235,16 @@ export const SettingsView: React.FC = () => {
         return <span key={perm} className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold">POS ومبيعات</span>;
       case 'inventory_manage':
         return <span key={perm} className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[10px] font-bold">المخزون والمنتجات</span>;
-      case 'purchases_suppliers':
-        return <span key={perm} className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-bold">المشتريات والموردين</span>;
       case 'customers_debts':
         return <span key={perm} className="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[10px] font-bold">العملاء والديون</span>;
+      case 'purchases_suppliers':
+        return <span key={perm} className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-bold">المشتريات والموردين</span>;
+      case 'representatives':
+        return <span key={perm} className="px-1.5 py-0.5 rounded bg-teal-500/20 text-teal-300 border border-teal-500/30 text-[10px] font-bold">المندوبين والسيارات</span>;
+      case 'expenses':
+        return <span key={perm} className="px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-300 border border-orange-500/30 text-[10px] font-bold">المصاريف والتشغيل</span>;
       case 'reports_profits':
-        return <span key={perm} className="px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 text-[10px] font-bold">الأرباح الصافية</span>;
+        return <span key={perm} className="px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 text-[10px] font-bold">الأرباح والتقارير</span>;
       case 'system_settings':
         return <span key={perm} className="px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-bold">إعدادات النظام</span>;
       default:
@@ -341,73 +357,7 @@ export const SettingsView: React.FC = () => {
         </div>
       </div>
 
-      {/* Firebase Cloud Settings Section */}
-      <div className="glass-panel p-6 space-y-4 max-w-2xl">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-          <h3 className="font-extrabold text-base text-white flex items-center gap-2">
-            <Cloud className="w-5 h-5 text-amber-400" />
-            <span>إعدادات ربط Firebase Firestore السحابية</span>
-          </h3>
 
-          <div className="flex items-center gap-1.5 text-xs font-semibold">
-            {firebaseStatus.connected ? (
-              <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center gap-1">
-                <Wifi className="w-3.5 h-3.5" />
-                <span>متصل بالسحاب</span>
-              </span>
-            ) : (
-              <span className="px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center gap-1">
-                <WifiOff className="w-3.5 h-3.5" />
-                <span>الوضع المحلي (أوفلاين)</span>
-              </span>
-            )}
-          </div>
-        </div>
-
-        <form onSubmit={handleSaveConfig} className="space-y-3">
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">API Key</label>
-            <input
-              type="text"
-              value={configForm.apiKey}
-              onChange={(e) => setConfigForm({ ...configForm, apiKey: e.target.value })}
-              placeholder="AIzaSy..."
-              className="w-full px-3.5 py-2 text-xs bg-slate-800 border border-slate-700 rounded-xl text-white font-mono focus:outline-none"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Project ID</label>
-              <input
-                type="text"
-                value={configForm.projectId}
-                onChange={(e) => setConfigForm({ ...configForm, projectId: e.target.value })}
-                placeholder="dukhan-erp-app"
-                className="w-full px-3.5 py-2 text-xs bg-slate-800 border border-slate-700 rounded-xl text-white font-mono focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Auth Domain</label>
-              <input
-                type="text"
-                value={configForm.authDomain}
-                onChange={(e) => setConfigForm({ ...configForm, authDomain: e.target.value })}
-                placeholder="dukhan-erp.firebaseapp.com"
-                className="w-full px-3.5 py-2 text-xs bg-slate-800 border border-slate-700 rounded-xl text-white font-mono focus:outline-none"
-              />
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs shadow-lg shadow-amber-500/20 transition-all flex items-center justify-center gap-2"
-          >
-            <Key className="w-4 h-4" />
-            <span>حفظ واختبار الاتصال السحابي</span>
-          </button>
-        </form>
-      </div>
 
       {/* Add / Edit User Account Modal */}
       {showAddUserModal && (
