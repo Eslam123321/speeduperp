@@ -205,7 +205,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const parsed: SystemUser[] = JSON.parse(saved);
       return parsed.map((u) => ({
         ...u,
-        permissions: u.permissions || (u.role === 'admin' ? ['all'] : u.role === 'inventory_manager' ? ['inventory_manage', 'purchases_suppliers'] : ['pos_sales', 'customers_debts']),
+        permissions: u.permissions || (u.role === 'admin' ? ['all'] : u.role === 'inventory_manager' ? ['inventory_manage'] : ['pos_sales', 'customers_debts']),
       }));
     }
     return INITIAL_USERS;
@@ -233,7 +233,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Automated complete legacy mock data cleanup (wipes legacy mock customers, suppliers, sales, reps, users, 500k capital from local state & Firebase)
   React.useEffect(() => {
-    const migratedKey = 'dukhan_clean_all_mock_v8';
+    const migratedKey = 'dukhan_clean_all_mock_v9';
     if (!localStorage.getItem(migratedKey)) {
       ['usr-2', 'usr-3'].forEach((id) => deleteFromFirestore('users', id));
       ['cust-1', 'cust-2', 'cust-3', 'cust-4'].forEach((id) => deleteFromFirestore('customers', id));
@@ -249,10 +249,17 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setNotifications((prev) => prev.filter((n) => !['notif-1', 'notif-2', 'notif-3'].includes(n.id)));
       setRepresentatives((prev) => prev.filter((r) => !['rep-1', 'rep-2'].includes(r.id)));
       
-      const cleanUsers = INITIAL_USERS;
-      setUsers(cleanUsers);
-      syncToFirebase('users', cleanUsers);
-      syncToFirestore('users', cleanUsers);
+      const validPerms: PermissionType[] = ['all', 'pos_sales', 'inventory_manage', 'customers_debts', 'reports_profits', 'system_settings'];
+      setUsers((prev) =>
+        prev
+          .filter((u) => !['usr-2', 'usr-3'].includes(u.id))
+          .map((u) => ({
+            ...u,
+            permissions: (u.permissions || ['all']).filter((p) => validPerms.includes(p as PermissionType)),
+          }))
+      );
+      syncToFirebase('users', INITIAL_USERS);
+      syncToFirestore('users', INITIAL_USERS);
 
       setExpenses([]);
 

@@ -159,12 +159,14 @@ export const SettingsView: React.FC = () => {
 
   const handleOpenEditModal = (u: SystemUser) => {
     setEditingUser(u);
+    const validIds = ALL_PERMISSIONS_OPTIONS.map((opt) => opt.id);
+    const cleanPerms = (u.permissions || ['all']).filter((p) => validIds.includes(p));
     setFormUserData({
       name: u.name,
       username: u.username,
       password: u.password || '123',
       role: u.role,
-      selectedPermissions: u.permissions || ['all'],
+      selectedPermissions: cleanPerms.length > 0 ? cleanPerms : ['pos_sales'],
     });
     setUserMsg({});
     setShowAddUserModal(true);
