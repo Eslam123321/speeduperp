@@ -92,12 +92,12 @@ export const Dashboard: React.FC = () => {
   const totalCustomerDebts = customers.reduce((acc, c) => acc + Math.max(0, c.balance), 0);
   const totalSupplierPayables = suppliers.reduce((acc, s) => acc + Math.max(0, s.balance), 0);
 
-  // Chart 1: Real-time Sales & Profits trend for the last 7 days (Robust Timestamp Matching)
+  // Chart 1: Real-time Sales & Profits trend starting from Today going forward for the upcoming week
   const daysOfWeek = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
 
   const salesChartData = Array.from({ length: 7 }).map((_, i) => {
     const targetDate = new Date(today);
-    targetDate.setDate(today.getDate() - (6 - i));
+    targetDate.setDate(today.getDate() + i);
 
     const y = targetDate.getFullYear();
     const m = targetDate.getMonth();
@@ -120,7 +120,7 @@ export const Dashboard: React.FC = () => {
     const arbah = daySalesInvoices.reduce((acc, s) => acc + s.netProfit, 0);
 
     return {
-      date: i === 6 ? 'اليوم' : dayName,
+      date: i === 0 ? 'اليوم' : dayName,
       mabi3at,
       arbah,
     };
