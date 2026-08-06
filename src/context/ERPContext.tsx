@@ -985,6 +985,8 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setSales((prev) => {
       const nextSales = [newInvoice, ...prev];
       localStorage.setItem('dukhan_sales', JSON.stringify(nextSales));
+      syncToFirebase('sales', nextSales);
+      syncToFirestore('sales', nextSales);
       return nextSales;
     });
 
@@ -1130,11 +1132,54 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteSaleInvoice = (id: string) => {
+    const targetInvoice = sales.find((s) => s.id === id);
+    if (targetInvoice) {
+      // 1. Restore product stock back to inventory!
+      setProducts((prevProds) => {
+        const nextProds = prevProds.map((p) => {
+          const soldItem = targetInvoice.items.find((it) => it.productId === p.id);
+          if (soldItem) {
+            return {
+              ...p,
+              currentStockPacks: p.currentStockPacks + soldItem.packsQuantity,
+            };
+          }
+          return p;
+        });
+        localStorage.setItem('dukhan_products', JSON.stringify(nextProds));
+        syncToFirebase('products', nextProds);
+        syncToFirestore('products', nextProds);
+        return nextProds;
+      });
+
+      // 2. Adjust customer debt if remaining amount exists
+      if (targetInvoice.customerId && targetInvoice.remainingAmount > 0) {
+        setCustomers((prevCusts) => {
+          const nextCusts = prevCusts.map((c) => {
+            if (c.id === targetInvoice.customerId) {
+              return {
+                ...c,
+                balance: Math.max(0, c.balance - targetInvoice.remainingAmount),
+              };
+            }
+            return c;
+          });
+          localStorage.setItem('dukhan_customers', JSON.stringify(nextCusts));
+          syncToFirebase('customers', nextCusts);
+          syncToFirestore('customers', nextCusts);
+          return nextCusts;
+        });
+      }
+    }
+
+    // 3. Delete from Firebase & LocalStorage
     deleteFromFirestore('sales', id);
     deleteFromFirebase('sales', id);
     setSales((prev) => {
       const next = prev.filter((s) => s.id !== id);
       localStorage.setItem('dukhan_sales', JSON.stringify(next));
+      syncToFirebase('sales', next);
+      syncToFirestore('sales', next);
       return next;
     });
   };
@@ -1183,6 +1228,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
     setProducts(updatedProducts);
     syncToFirebase('products', updatedProducts);
+    syncToFirestore('products', updatedProducts);
 
     if (supplierId && remainingAmount > 0) {
       setSuppliers((prev) =>
@@ -1206,6 +1252,8 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setPurchases((prev) => {
       const nextPurchases = [newPurchase, ...prev];
       localStorage.setItem('dukhan_purchases', JSON.stringify(nextPurchases));
+      syncToFirebase('purchases', nextPurchases);
+      syncToFirestore('purchases', nextPurchases);
       return nextPurchases;
     });
 
@@ -1221,11 +1269,53 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deletePurchaseInvoice = (id: string) => {
+    const targetPurchase = purchases.find((p) => p.id === id);
+    if (targetPurchase) {
+      // 1. Deduct stock back from inventory when a purchase invoice is deleted!
+      setProducts((prevProds) => {
+        const nextProds = prevProds.map((p) => {
+          const purItem = targetPurchase.items.find((it) => it.productId === p.id);
+          if (purItem) {
+            return {
+              ...p,
+              currentStockPacks: Math.max(0, p.currentStockPacks - purItem.packsQuantity),
+            };
+          }
+          return p;
+        });
+        localStorage.setItem('dukhan_products', JSON.stringify(nextProds));
+        syncToFirebase('products', nextProds);
+        syncToFirestore('products', nextProds);
+        return nextProds;
+      });
+
+      // 2. Adjust supplier balance
+      if (targetPurchase.supplierId && targetPurchase.remainingAmount > 0) {
+        setSuppliers((prevSupps) => {
+          const nextSupps = prevSupps.map((s) => {
+            if (s.id === targetPurchase.supplierId) {
+              return {
+                ...s,
+                balance: Math.max(0, s.balance - targetPurchase.remainingAmount),
+              };
+            }
+            return s;
+          });
+          localStorage.setItem('dukhan_suppliers', JSON.stringify(nextSupps));
+          syncToFirebase('suppliers', nextSupps);
+          syncToFirestore('suppliers', nextSupps);
+          return nextSupps;
+        });
+      }
+    }
+
     deleteFromFirestore('purchases', id);
     deleteFromFirebase('purchases', id);
     setPurchases((prev) => {
       const next = prev.filter((p) => p.id !== id);
       localStorage.setItem('dukhan_purchases', JSON.stringify(next));
+      syncToFirebase('purchases', next);
+      syncToFirestore('purchases', next);
       return next;
     });
   };
