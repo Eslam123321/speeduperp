@@ -561,10 +561,6 @@ export const CustomerAccounts: React.FC = () => {
                     {statementCustomer.type === 'retail' ? 'تجزئة / كشك' : statementCustomer.type === 'wholesale' ? 'تاجر جملة' : 'موزع إقليمي'}
                   </strong>
                 </div>
-                <div className="text-left">
-                  <span className="text-slate-500 block">حد الائتمان:</span>
-                  <strong className="text-slate-900 font-mono">{statementCustomer.creditLimit.toLocaleString('ar-EG')} ج.م</strong>
-                </div>
               </div>
 
               {/* Summary Cards */}
