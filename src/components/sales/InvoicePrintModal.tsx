@@ -199,26 +199,20 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({ invoice, o
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {invoice.items.map((item, idx) => (
-                  <tr key={idx} className="text-slate-800">
-                    <td className="py-2 font-semibold text-slate-900">
-                      <div>
-                        <span>{item.productName}</span>
-                        {item.discount && item.discount > 0 ? (
-                          <span className="block text-[10px] text-emerald-700 font-extrabold">
-                            خصم صنف: -{item.discount.toLocaleString('ar-EG')} ج.م
-                          </span>
-                        ) : null}
-                      </div>
-                    </td>
-                    <td className="py-2 text-slate-600">{item.unitLabel}</td>
-                    <td className="py-2 font-bold font-mono">{item.quantity}</td>
-                    <td className="py-2 font-mono">{item.unitPrice.toLocaleString('ar-EG')}</td>
-                    <td className="py-2 text-left font-extrabold font-mono text-slate-900">
-                      {item.total.toLocaleString('ar-EG')}
-                    </td>
-                  </tr>
-                ))}
+                {invoice.items.map((item, idx) => {
+                  const effectiveUnitPrice = item.quantity > 0 ? (item.total / item.quantity) : item.unitPrice;
+                  return (
+                    <tr key={idx} className="text-slate-800">
+                      <td className="py-2 font-semibold text-slate-900">{item.productName}</td>
+                      <td className="py-2 text-slate-600">{item.unitLabel}</td>
+                      <td className="py-2 font-bold font-mono">{item.quantity}</td>
+                      <td className="py-2 font-mono">{effectiveUnitPrice.toLocaleString('ar-EG')}</td>
+                      <td className="py-2 text-left font-extrabold font-mono text-slate-900">
+                        {item.total.toLocaleString('ar-EG')}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

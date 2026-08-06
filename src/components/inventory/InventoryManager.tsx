@@ -142,7 +142,7 @@ export const InventoryManager: React.FC = () => {
         minStockAlertPacks: (formData.minStockAlertCartons || 0) * packsPerCarton,
       });
 
-      const profitPerCarton = (formData.wholesalePricePerPack - formData.costPricePerPack) * packsPerCarton;
+      const profitPerCarton = formData.wholesalePricePerPack - formData.costPricePerPack;
       alert(
         `✨ تم تحديث بيانات وشحنة الصنف (${editingProduct.name}) بنجاح!\n\n` +
         `📦 الكمية الكلية بالمخزن الآن: ${Math.floor(finalTotalPacks / packsPerCarton)} قروصة.\n` +

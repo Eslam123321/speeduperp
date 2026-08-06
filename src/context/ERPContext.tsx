@@ -88,6 +88,10 @@ interface ERPContextType {
   confirmSaleInvoice: (draft: SaleInvoice) => SaleInvoice;
   cancelDraftInvoice: () => void;
   deleteSaleInvoice: (id: string) => void;
+  editingInvoice: SaleInvoice | null;
+  startEditInvoice: (invoice: SaleInvoice) => void;
+  saveEditedInvoice: (updatedInvoice: SaleInvoice) => SaleInvoice;
+  cancelEditInvoice: () => void;
 
   // Purchase Operations
   createPurchaseInvoice: (invoice: {
@@ -903,6 +907,77 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setPrintingInvoice(null);
   };
 
+  const [editingInvoice, setEditingInvoice] = useState<SaleInvoice | null>(null);
+
+  const startEditInvoice = (inv: SaleInvoice) => {
+    setEditingInvoice(inv);
+    setActiveTab('pos');
+  };
+
+  const cancelEditInvoice = () => {
+    setEditingInvoice(null);
+  };
+
+  const saveEditedInvoice = (updatedInvoice: SaleInvoice): SaleInvoice => {
+    const oldInvoice = sales.find((s) => s.id === updatedInvoice.id);
+    if (!oldInvoice) return updatedInvoice;
+
+    // 1. Customer Balance Adjustment
+    if (updatedInvoice.customerId || oldInvoice.customerId) {
+      const targetCustId = updatedInvoice.customerId || oldInvoice.customerId;
+      setCustomers((prevCusts) =>
+        prevCusts.map((c) => {
+          if (c.id !== targetCustId) return c;
+          const oldRem = oldInvoice.remainingAmount || 0;
+          const newRem = updatedInvoice.remainingAmount || 0;
+          const diff = newRem - oldRem;
+          return {
+            ...c,
+            balance: Math.max(0, c.balance + diff),
+          };
+        })
+      );
+    }
+
+    // 2. Product Stock Adjustment
+    setProducts((prevProds) => {
+      let nextProds = [...prevProds];
+
+      // Restore old items stock
+      oldInvoice.items.forEach((oldItem) => {
+        const pIdx = nextProds.findIndex((p) => p.id === oldItem.productId);
+        if (pIdx >= 0) {
+          nextProds[pIdx] = {
+            ...nextProds[pIdx],
+            currentStockPacks: nextProds[pIdx].currentStockPacks + oldItem.packsQuantity,
+          };
+        }
+      });
+
+      // Deduct new items stock
+      updatedInvoice.items.forEach((newItem) => {
+        const pIdx = nextProds.findIndex((p) => p.id === newItem.productId);
+        if (pIdx >= 0) {
+          nextProds[pIdx] = {
+            ...nextProds[pIdx],
+            currentStockPacks: Math.max(0, nextProds[pIdx].currentStockPacks - newItem.packsQuantity),
+          };
+        }
+      });
+
+      return nextProds;
+    });
+
+    // 3. Update Sales array & sync to Firebase
+    const updatedList = sales.map((s) => (s.id === updatedInvoice.id ? updatedInvoice : s));
+    setSales(updatedList);
+    syncToFirebase('sales', updatedList);
+    syncToFirestore('sales', updatedList);
+
+    setEditingInvoice(null);
+    return updatedInvoice;
+  };
+
   const deleteSaleInvoice = (id: string) => {
     deleteFromFirestore('sales', id);
     setSales((prev) => prev.filter((s) => s.id !== id));
@@ -1397,6 +1472,10 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         confirmSaleInvoice,
         cancelDraftInvoice,
         deleteSaleInvoice,
+        editingInvoice,
+        startEditInvoice,
+        saveEditedInvoice,
+        cancelEditInvoice,
         createPurchaseInvoice,
         deletePurchaseInvoice,
         addCustomer,

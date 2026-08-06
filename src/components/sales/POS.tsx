@@ -26,7 +26,7 @@ import {
   FileText,
 } from 'lucide-react';
 import { useERP } from '../../context/ERPContext';
-import { Product, SaleItem, UnitType, SystemUser, EmployeeStockItem } from '../../types';
+import { Product, SaleItem, UnitType, SystemUser, EmployeeStockItem, SaleInvoice } from '../../types';
 
 export const POS: React.FC = () => {
   const {
@@ -44,6 +44,10 @@ export const POS: React.FC = () => {
     sales,
     printingInvoice,
     setPrintingInvoice,
+    editingInvoice,
+    startEditInvoice,
+    saveEditedInvoice,
+    cancelEditInvoice,
   } = useERP();
 
   const [passwordChangeUser, setPasswordChangeUser] = useState<SystemUser | null>(null);
@@ -260,16 +264,29 @@ export const POS: React.FC = () => {
   const rawCartTotal = cartItems.reduce((acc, item) => acc + item.total, 0);
   const finalCartTotal = Math.max(0, rawCartTotal - discount);
 
+  // Prefill cart and fields when editing an existing invoice
+  React.useEffect(() => {
+    if (editingInvoice) {
+      setCartItems(editingInvoice.items);
+      setSelectedCustomerId(editingInvoice.customerId || '');
+      setSelectedRepId(editingInvoice.representativeId || '');
+      setDiscount(editingInvoice.discount || 0);
+      setPaymentMethod(editingInvoice.paymentMethod);
+      setPaidAmountInput(editingInvoice.paidAmount);
+      setNotes(editingInvoice.notes || '');
+    }
+  }, [editingInvoice]);
+
   // Clear POS cart once an invoice is confirmed and saved (isDraft is false)
   React.useEffect(() => {
-    if (printingInvoice && !printingInvoice.isDraft && cartItems.length > 0) {
+    if (printingInvoice && !printingInvoice.isDraft && cartItems.length > 0 && !editingInvoice) {
       setCartItems([]);
       setDiscount(0);
       setPaidAmountInput(0);
       setSelectedRepId('');
       setNotes('');
     }
-  }, [printingInvoice]);
+  }, [printingInvoice, editingInvoice]);
 
   const handleCheckout = () => {
     if (cartItems.length === 0) return;
@@ -292,6 +309,36 @@ export const POS: React.FC = () => {
     const netProfit = finalAmount - totalCost;
     const actualPaid = paymentMethod === 'cash' ? finalAmount : Math.min(paidAmountInput, finalAmount);
     const remainingAmount = Math.max(0, finalAmount - actualPaid);
+
+    if (editingInvoice) {
+      const updatedInvoice: SaleInvoice = {
+        ...editingInvoice,
+        customerId: selectedCustomerId || undefined,
+        customerName,
+        representativeId: selectedRepId || undefined,
+        representativeName,
+        items: [...cartItems],
+        totalCost,
+        totalAmount,
+        discount,
+        finalAmount,
+        netProfit,
+        paymentMethod,
+        paidAmount: actualPaid,
+        remainingAmount,
+        notes,
+      };
+
+      const saved = saveEditedInvoice(updatedInvoice);
+      alert(`✨ تم حفظ وتعديل الفاتورة رقم (${saved.invoiceNumber}) بنجاح!`);
+      setCartItems([]);
+      setDiscount(0);
+      setPaidAmountInput(0);
+      setSelectedCustomerId('');
+      setNotes('');
+      setPrintingInvoice(saved);
+      return;
+    }
 
     const draftInvoice = {
       id: `draft-${Date.now()}`,
@@ -707,10 +754,31 @@ export const POS: React.FC = () => {
               <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                 <h2 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
                   <CreditCard className="w-5 h-5 text-amber-400" />
-                  <span>الفاتورة وتصفية الحساب</span>
+                  <span>{editingInvoice ? `تعديل الفاتورة (${editingInvoice.invoiceNumber})` : 'الفاتورة وتصفية الحساب'}</span>
                 </h2>
                 <span className="text-xs text-slate-400 font-mono">{cartItems.length} أصناف في السلة</span>
               </div>
+
+              {editingInvoice && (
+                <div className="bg-amber-500/15 border border-amber-500/40 p-3 rounded-xl flex items-center justify-between text-xs">
+                  <span className="font-extrabold text-amber-300">
+                    ✏️ جاري تعديل الفاتورة رقم ({editingInvoice.invoiceNumber})
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      cancelEditInvoice();
+                      setCartItems([]);
+                      setDiscount(0);
+                      setPaidAmountInput(0);
+                      setSelectedCustomerId('');
+                    }}
+                    className="px-2 py-1 rounded bg-red-500/20 text-red-300 border border-red-500/40 font-bold hover:bg-red-500/30"
+                  >
+                    إلغاء التعديل ✖
+                  </button>
+                </div>
+              )}
 
               {/* Customer Selector (Filtered for employee if in employee mode) */}
               <div className="space-y-1">
@@ -780,15 +848,13 @@ export const POS: React.FC = () => {
                           {item.total.toLocaleString('ar-EG')}ج
                         </strong>
 
-                        {currentUser.role === 'admin' && (
-                          <button
-                            onClick={() => handleOpenEditItem(idx)}
-                            className="p-1 text-slate-400 hover:text-blue-400"
-                            title="تعديل سعر هذا اليوم"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
+                        <button
+                          onClick={() => handleOpenEditItem(idx)}
+                          className="p-1 text-slate-400 hover:text-amber-400"
+                          title="تعديل السعر والخصم الصنفي"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
 
                         <button
                           onClick={() => handleRemoveFromCart(idx)}
@@ -1130,13 +1196,23 @@ export const POS: React.FC = () => {
                             <td className="p-2.5 text-slate-200 font-semibold">{sale.customerName}</td>
                             <td className="p-2.5 font-bold text-white">{sale.finalAmount.toLocaleString('ar-EG')} ج.م</td>
                             <td className="p-2.5 text-emerald-400">{sale.paidAmount.toLocaleString('ar-EG')} ج.م</td>
-                            <td className="p-2.5 text-center">
+                            <td className="p-2.5 text-center flex items-center justify-center gap-2">
                               <button
                                 onClick={() => setPrintingInvoice(sale)}
-                                className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs shadow-sm flex items-center justify-center gap-1 mx-auto cursor-pointer"
+                                className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs shadow-sm flex items-center justify-center gap-1 cursor-pointer"
                               >
                                 <Printer className="w-3.5 h-3.5" />
-                                <span>معاينة / PDF / صورة</span>
+                                <span>معاينة / PDF</span>
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setShowTodayInvoicesModal(false);
+                                  startEditInvoice(sale);
+                                }}
+                                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-blue-600/30 text-blue-400 border border-slate-700 font-bold text-xs flex items-center justify-center gap-1 cursor-pointer"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                                <span>تعديل ✏️</span>
                               </button>
                             </td>
                           </tr>

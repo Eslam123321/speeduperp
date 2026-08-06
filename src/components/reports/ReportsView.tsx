@@ -13,6 +13,7 @@ import {
   Receipt,
   AlertTriangle,
   Trash2,
+  Edit2,
 } from 'lucide-react';
 import { useERP } from '../../context/ERPContext';
 import { SaleInvoice } from '../../types';
@@ -30,6 +31,7 @@ export const ReportsView: React.FC = () => {
     deleteSaleInvoice,
     setPrintingInvoice,
     resetRepCash,
+    startEditInvoice,
     initialCapitalCash,
     netTotalCapital,
     inventoryCostCapital,
@@ -314,6 +316,13 @@ export const ReportsView: React.FC = () => {
                         title="معاينة الفاتورة / طباعة / إرسال PDF"
                       >
                         <Printer className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => startEditInvoice(sale)}
+                        className="p-1.5 rounded-lg bg-slate-800 hover:bg-blue-600/30 text-blue-400 border border-slate-700 transition-colors cursor-pointer"
+                        title="تعديل بيانات الفاتورة ✏️"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => setInvoiceToDelete(sale)}
