@@ -21,8 +21,11 @@ let rtdb: Database | null = null;
 
 export const initializeFirebaseService = (config: FirebaseConfigInput = DEFAULT_FIREBASE_CONFIG): { success: boolean; message: string } => {
   try {
-    const activeConfig = config && config.apiKey ? config : DEFAULT_FIREBASE_CONFIG;
-    if (!activeConfig.apiKey || !activeConfig.projectId) {
+    const activeConfig: FirebaseConfigInput = {
+      ...DEFAULT_FIREBASE_CONFIG,
+      ...(config && config.apiKey && config.projectId ? config : {}),
+    };
+    if (!activeConfig.apiKey || !activeConfig.projectId || !activeConfig.databaseURL) {
       return { success: false, message: 'مفاتيح Firebase غير مكتملة' };
     }
 
