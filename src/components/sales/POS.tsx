@@ -247,15 +247,23 @@ export const POS: React.FC = () => {
   const handleSaveItemEdit = () => {
     if (editingItemIndex === null) return;
 
+    const safeVal = (v: any) => {
+      const n = Number(v);
+      return isNaN(n) || !isFinite(n) ? 0 : Math.max(0, n);
+    };
+
     const updated = [...cartItems];
     const item = updated[editingItemIndex];
-    const itemDiscount = Math.max(0, editDiscountInput);
+    const price = safeVal(editPriceInput);
+    const cost = safeVal(editCostInput);
+    const itemDiscount = safeVal(editDiscountInput);
+
     updated[editingItemIndex] = {
       ...item,
-      unitPrice: editPriceInput,
-      unitCost: editCostInput,
+      unitPrice: price,
+      unitCost: cost,
       discount: itemDiscount,
-      total: Math.max(0, (item.quantity * editPriceInput) - itemDiscount),
+      total: Math.max(0, (item.quantity * price) - itemDiscount),
     };
     setCartItems(updated);
     setEditingItemIndex(null);

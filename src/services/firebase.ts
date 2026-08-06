@@ -72,6 +72,9 @@ export const isFirebaseActive = () => db !== null || rtdb !== null;
 
 export const sanitizeForFirebase = (data: any): any => {
   if (data === undefined) return null;
+  if (typeof data === 'number') {
+    return isNaN(data) || !isFinite(data) ? 0 : data;
+  }
   if (data === null || typeof data !== 'object') return data;
   if (data instanceof Date) return data.toISOString();
   if (Array.isArray(data)) {

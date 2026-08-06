@@ -867,17 +867,39 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     paidAmount: number;
     notes?: string;
   }): SaleInvoice => {
+    const safeNum = (v: any) => {
+      const n = Number(v);
+      return isNaN(n) || !isFinite(n) ? 0 : n;
+    };
+
     let totalCost = 0;
     let totalAmount = 0;
 
-    items.forEach((item) => {
-      totalCost += item.unitCost * item.quantity;
-      totalAmount += item.total;
+    const sanitizedItems: SaleItem[] = items.map((it) => {
+      const uPrice = safeNum(it.unitPrice);
+      const uCost = safeNum(it.unitCost);
+      const qty = safeNum(it.quantity);
+      const disc = safeNum(it.discount);
+      const pQty = safeNum(it.packsQuantity) || qty;
+      const tot = safeNum(it.total) || Math.max(0, qty * uPrice - disc);
+      totalCost += uCost * qty;
+      totalAmount += tot;
+      return {
+        ...it,
+        quantity: qty,
+        packsQuantity: pQty,
+        unitPrice: uPrice,
+        unitCost: uCost,
+        discount: disc,
+        total: tot,
+      };
     });
 
-    const finalAmount = Math.max(0, totalAmount - discount);
-    const netProfit = Math.max(0, finalAmount - totalCost);
-    const actualPaid = paymentMethod === 'cash' ? finalAmount : Math.min(paidAmount, finalAmount);
+    const safeDiscount = safeNum(discount);
+    const finalAmount = Math.max(0, safeNum(totalAmount) - safeDiscount);
+    const netProfit = Math.max(0, finalAmount - safeNum(totalCost));
+    const safePaid = safeNum(paidAmount);
+    const actualPaid = paymentMethod === 'cash' ? finalAmount : Math.min(Math.max(0, safePaid), finalAmount);
     const remainingAmount = Math.max(0, finalAmount - actualPaid);
 
     const invoiceNum = `INV-2026-${String(sales.length + 1001)}`;
@@ -885,14 +907,14 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: `sale-${Date.now()}`,
       invoiceNumber: invoiceNum,
       date: new Date().toLocaleString('ar-EG'),
-      customerId,
-      customerName,
-      representativeId,
-      representativeName,
-      items,
-      totalCost,
-      totalAmount,
-      discount,
+      customerId: customerId || undefined,
+      customerName: customerName || 'عميل نقدي (كاش)',
+      representativeId: representativeId || undefined,
+      representativeName: representativeName || undefined,
+      items: sanitizedItems,
+      totalCost: safeNum(totalCost),
+      totalAmount: safeNum(totalAmount),
+      discount: safeDiscount,
       finalAmount,
       netProfit,
       paymentMethod,
@@ -900,7 +922,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       remainingAmount,
       createdByRole: currentUser.role,
       createdByName: currentUser.name,
-      notes,
+      notes: notes || undefined,
     };
 
     const updatedProducts = products.map((p) => {
