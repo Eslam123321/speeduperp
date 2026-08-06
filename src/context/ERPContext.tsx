@@ -772,7 +772,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
 
     const finalAmount = Math.max(0, totalAmount - discount);
-    const netProfit = finalAmount - totalCost;
+    const netProfit = Math.max(0, finalAmount - totalCost);
     const actualPaid = paymentMethod === 'cash' ? finalAmount : Math.min(paidAmount, finalAmount);
     const remainingAmount = Math.max(0, finalAmount - actualPaid);
 
@@ -810,10 +810,22 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setProducts(updatedProducts);
     checkLowStockAlerts(updatedProducts);
 
-    if (customerId && remainingAmount > 0) {
-      setCustomers((prev) =>
-        prev.map((c) => (c.id === customerId ? { ...c, balance: c.balance + remainingAmount } : c))
-      );
+    if (customerId) {
+      setCustomers((prev) => {
+        const nextCusts = prev.map((c) => {
+          if (c.id === customerId) {
+            return {
+              ...c,
+              balance: Math.max(0, c.balance + remainingAmount),
+              lastPaymentDate: actualPaid > 0 ? new Date().toISOString().split('T')[0] : c.lastPaymentDate,
+            };
+          }
+          return c;
+        });
+        syncToFirebase('customers', nextCusts);
+        syncToFirestore('customers', nextCusts);
+        return nextCusts;
+      });
     }
 
     if (representativeId) {

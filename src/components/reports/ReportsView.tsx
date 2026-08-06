@@ -72,12 +72,44 @@ export const ReportsView: React.FC = () => {
   const totalSalesCount = sales.length;
   const totalRevenue = sales.reduce((acc, s) => acc + s.finalAmount, 0);
   const totalCost = sales.reduce((acc, s) => acc + s.totalCost, 0);
-  const grossProfit = sales.reduce((acc, s) => acc + s.netProfit, 0);
+  const grossProfit = Math.max(0, sales.reduce((acc, s) => acc + Math.max(0, s.netProfit), 0));
   const realNetProfit = grossProfit;
 
   // Today's Sales Filter
-  const todayStr = new Date().toISOString().split('T')[0];
-  const todaySales = sales.filter((s) => s.date.includes(todayStr) || s.date.startsWith(todayStr));
+  const now = new Date();
+  const todayY = now.getFullYear();
+  const todayM = now.getMonth() + 1;
+  const todayD = now.getDate();
+
+  const isSameDayAsToday = (s: { id?: string; date?: string }) => {
+    if (s.id && s.id.startsWith('sale-')) {
+      const ts = Number(s.id.replace('sale-', ''));
+      if (!isNaN(ts) && ts > 1000000000) {
+        const d = new Date(ts);
+        if (d.getFullYear() === todayY && (d.getMonth() + 1) === todayM && d.getDate() === todayD) {
+          return true;
+        }
+      }
+    }
+    if (!s.date) return false;
+
+    const cleanStr = s.date.replace(/[^0-9/]/g, ' ');
+    const parts = cleanStr.trim().split(/\s+/);
+    for (const part of parts) {
+      if (part.includes('/')) {
+        const [p1, p2, p3] = part.split('/').map(Number);
+        if (
+          (p1 === todayY && p2 === todayM && p3 === todayD) ||
+          (p3 === todayY && p2 === todayM && p1 === todayD)
+        ) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+
+  const todaySales = sales.filter((s) => isSameDayAsToday(s));
   const todayRevenue = todaySales.reduce((acc, s) => acc + s.finalAmount, 0);
 
   return (

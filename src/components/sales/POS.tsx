@@ -1163,9 +1163,11 @@ export const POS: React.FC = () => {
             <div className="space-y-3">
               {(() => {
                 const empName = activeEmployee ? activeEmployee.name : currentUser.name;
-                const empSales = sales.filter(
-                  (s) => s.createdByName === empName || (s.createdByRole === 'cashier' && activeEmployee && s.createdByName === activeEmployee.name)
-                );
+                const empSales = currentUser.role === 'admin' && !activeEmployee
+                  ? sales
+                  : sales.filter(
+                      (s) => s.createdByName === empName || (activeEmployee && s.createdByName === activeEmployee.name)
+                    );
 
                 if (empSales.length === 0) {
                   return (

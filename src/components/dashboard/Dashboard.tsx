@@ -75,18 +75,36 @@ export const Dashboard: React.FC = () => {
     return 0;
   };
 
-  const todaySales = sales.filter((s) => {
+  const isSameDayAsToday = (s: { id?: string; date?: string }) => {
     const ts = getInvoiceTimestamp(s);
     if (ts >= startOfToday && ts <= endOfToday) return true;
     if (!s.date) return false;
-    const todayIsoDate = today.toISOString().split('T')[0];
-    const todayArabicDate = today.toLocaleDateString('ar-EG');
-    return s.date.includes(todayIsoDate) || s.date.includes(todayArabicDate);
-  });
+
+    const cleanStr = s.date.replace(/[^0-9/]/g, ' ');
+    const parts = cleanStr.trim().split(/\s+/);
+    const todayY = today.getFullYear();
+    const todayM = today.getMonth() + 1;
+    const todayD = today.getDate();
+
+    for (const part of parts) {
+      if (part.includes('/')) {
+        const [p1, p2, p3] = part.split('/').map(Number);
+        if (
+          (p1 === todayY && p2 === todayM && p3 === todayD) ||
+          (p3 === todayY && p2 === todayM && p1 === todayD)
+        ) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+
+  const todaySales = sales.filter((s) => isSameDayAsToday(s));
 
   const totalTodaySalesAmount = todaySales.reduce((acc, s) => acc + s.finalAmount, 0);
   const totalMonthlySalesAmount = sales.reduce((acc, s) => acc + s.finalAmount, 0);
-  const totalNetProfit = sales.reduce((acc, s) => acc + s.netProfit, 0);
+  const totalNetProfit = Math.max(0, sales.reduce((acc, s) => acc + Math.max(0, s.netProfit), 0));
 
   const lowStockProducts = products.filter((p) => p.currentStockPacks <= p.minStockAlertPacks);
   const totalCustomerDebts = customers.reduce((acc, c) => acc + Math.max(0, c.balance), 0);
