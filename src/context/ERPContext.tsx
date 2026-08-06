@@ -289,48 +289,6 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return saved ? JSON.parse(saved) : [];
   });
 
-  // Automated complete legacy mock data cleanup (wipes legacy mock products, customers, suppliers, sales, reps, users, 500k capital from local state & Firebase)
-  React.useEffect(() => {
-    const migratedKey = 'dukhan_clean_all_mock_v10';
-    if (!localStorage.getItem(migratedKey)) {
-      ['usr-2', 'usr-3'].forEach((id) => deleteFromFirestore('users', id));
-      ['cust-1', 'cust-2', 'cust-3', 'cust-4'].forEach((id) => deleteFromFirestore('customers', id));
-      ['supp-1', 'supp-2', 'supp-3'].forEach((id) => deleteFromFirestore('suppliers', id));
-      ['sale-1', 'sale-2'].forEach((id) => deleteFromFirestore('sales', id));
-      ['purch-1'].forEach((id) => deleteFromFirestore('purchases', id));
-      ['rep-1', 'rep-2'].forEach((id) => deleteFromFirestore('representatives', id));
-      ['prod-1', 'prod-2', 'prod-3', 'prod-4', 'prod-5', 'prod-6', 'prod-7', 'prod-8', 'prod-9', 'prod-10'].forEach((id) => deleteFromFirestore('products', id));
-
-      setProducts([]);
-      setCustomers([]);
-      setSuppliers([]);
-      setSales([]);
-      setPurchases([]);
-      setNotifications([]);
-      setRepresentatives([]);
-      setExpenses([]);
-
-      syncToFirebase('products', []);
-      syncToFirebase('customers', []);
-      syncToFirebase('suppliers', []);
-      syncToFirebase('sales', []);
-      syncToFirebase('purchases', []);
-      syncToFirebase('representatives', []);
-      syncToFirebase('expenses', []);
-      syncToFirebase('notifications', []);
-
-      const cleanUsers = INITIAL_USERS;
-      setUsers(cleanUsers);
-      syncToFirebase('users', cleanUsers);
-      syncToFirestore('users', cleanUsers);
-
-      setInitialCapitalCashState(0);
-      localStorage.setItem('dukhan_capital_cash', '0');
-
-      localStorage.setItem(migratedKey, 'true');
-    }
-  }, []);
-
   React.useEffect(() => {
     localStorage.setItem('dukhan_employee_assignments', JSON.stringify(employeeAssignments));
   }, [employeeAssignments]);
@@ -538,198 +496,173 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     if (res.success) {
       const isDiff = (a: any, b: any) => JSON.stringify(a) !== JSON.stringify(b);
-      const parseRemoteData = (remote: any): any[] | null => {
-        if (Array.isArray(remote)) return remote;
-        if (remote && typeof remote === 'object') {
-          const vals = Object.values(remote);
-          if (vals.length > 0) return vals;
+
+      const parseRemoteData = (remote: any): any[] => {
+        if (!remote) return [];
+        if (Array.isArray(remote)) return remote.filter(Boolean);
+        if (typeof remote === 'object') {
+          return Object.values(remote).filter(Boolean) as any[];
         }
-        return null;
+        return [];
       };
 
       const mergeEntitiesById = (remoteItems: any[], localItems: any[]) => {
         const map = new Map<string, any>();
-        localItems.forEach((item) => {
+        (localItems || []).forEach((item) => {
           if (item && item.id) map.set(String(item.id), item);
         });
-        remoteItems.forEach((item) => {
-          if (item && item.id) map.set(String(item.id), item);
+        (remoteItems || []).forEach((item) => {
+          if (item && item.id) {
+            const existing = map.get(String(item.id));
+            if (!existing) {
+              map.set(String(item.id), item);
+            } else {
+              map.set(String(item.id), { ...existing, ...item });
+            }
+          }
         });
         return Array.from(map.values());
+      };
+
+      const getInvoiceTs = (inv: any) => {
+        if (inv && inv.id) {
+          const ts = Number(String(inv.id).replace(/[^0-9]/g, ''));
+          if (!isNaN(ts) && ts > 1000000000) return ts;
+        }
+        if (inv && inv.date) {
+          const parsed = new Date(inv.date).getTime();
+          if (!isNaN(parsed) && parsed > 1000000000) return parsed;
+        }
+        return 0;
       };
 
       // Realtime live subscriptions for ALL entities across devices (Mobile + Desktop)
       const unsubProducts = subscribeToFirebase('products', (remote) => {
         const parsed = parseRemoteData(remote);
-        if (parsed && parsed.length > 0) {
-          setProducts((prev) => {
-            const merged = mergeEntitiesById(parsed, prev);
-            if (isDiff(merged, prev)) {
-              syncToFirebase('products', merged);
-              syncToFirestore('products', merged);
-              return merged;
-            }
-            return prev;
-          });
-        } else if (remote === null) {
-          setProducts((prev) => {
-            if (prev.length > 0) {
-              syncToFirebase('products', prev);
-              syncToFirestore('products', prev);
-            }
-            return prev;
-          });
-        }
+        setProducts((prev) => {
+          const merged = mergeEntitiesById(parsed, prev);
+          if (isDiff(merged, prev)) {
+            localStorage.setItem('dukhan_products', JSON.stringify(merged));
+            syncToFirebase('products', merged);
+            syncToFirestore('products', merged);
+            return merged;
+          }
+          return prev;
+        });
       });
 
       const unsubCustomers = subscribeToFirebase('customers', (remote) => {
         const parsed = parseRemoteData(remote);
-        if (parsed && parsed.length > 0) {
-          setCustomers((prev) => {
-            const merged = mergeEntitiesById(parsed, prev);
-            if (isDiff(merged, prev)) {
-              syncToFirebase('customers', merged);
-              syncToFirestore('customers', merged);
-              return merged;
-            }
-            return prev;
-          });
-        } else if (remote === null) {
-          setCustomers((prev) => {
-            if (prev.length > 0) {
-              syncToFirebase('customers', prev);
-              syncToFirestore('customers', prev);
-            }
-            return prev;
-          });
-        }
+        setCustomers((prev) => {
+          const merged = mergeEntitiesById(parsed, prev);
+          if (isDiff(merged, prev)) {
+            localStorage.setItem('dukhan_customers', JSON.stringify(merged));
+            syncToFirebase('customers', merged);
+            syncToFirestore('customers', merged);
+            return merged;
+          }
+          return prev;
+        });
       });
 
       const unsubSuppliers = subscribeToFirebase('suppliers', (remote) => {
         const parsed = parseRemoteData(remote);
-        if (parsed && parsed.length > 0) {
-          setSuppliers((prev) => {
-            const merged = mergeEntitiesById(parsed, prev);
-            if (isDiff(merged, prev)) {
-              syncToFirebase('suppliers', merged);
-              syncToFirestore('suppliers', merged);
-              return merged;
-            }
-            return prev;
-          });
-        } else if (remote === null) {
-          setSuppliers((prev) => {
-            if (prev.length > 0) {
-              syncToFirebase('suppliers', prev);
-              syncToFirestore('suppliers', prev);
-            }
-            return prev;
-          });
-        }
+        setSuppliers((prev) => {
+          const merged = mergeEntitiesById(parsed, prev);
+          if (isDiff(merged, prev)) {
+            localStorage.setItem('dukhan_suppliers', JSON.stringify(merged));
+            syncToFirebase('suppliers', merged);
+            syncToFirestore('suppliers', merged);
+            return merged;
+          }
+          return prev;
+        });
       });
 
       const unsubSales = subscribeToFirebase('sales', (remote) => {
         const parsed = parseRemoteData(remote);
-        if (parsed && parsed.length > 0) {
-          setSales((prev) => {
-            const merged = mergeEntitiesById(parsed, prev);
-            // Sort merged sales so newest invoices remain on top
-            merged.sort((a, b) => {
-              const tsA = Number(String(a.id || '').replace('sale-', '')) || 0;
-              const tsB = Number(String(b.id || '').replace('sale-', '')) || 0;
-              return tsB - tsA;
-            });
-            if (isDiff(merged, prev)) {
-              syncToFirebase('sales', merged);
-              syncToFirestore('sales', merged);
-              return merged;
-            }
-            return prev;
-          });
-        } else if (remote === null) {
-          setSales((prev) => {
-            if (prev.length > 0) {
-              syncToFirebase('sales', prev);
-              syncToFirestore('sales', prev);
-            }
-            return prev;
-          });
-        }
+        setSales((prev) => {
+          const merged = mergeEntitiesById(parsed, prev);
+          merged.sort((a, b) => getInvoiceTs(b) - getInvoiceTs(a));
+          if (isDiff(merged, prev)) {
+            localStorage.setItem('dukhan_sales', JSON.stringify(merged));
+            syncToFirebase('sales', merged);
+            syncToFirestore('sales', merged);
+            return merged;
+          }
+          return prev;
+        });
       });
 
       const unsubPurchases = subscribeToFirebase('purchases', (remote) => {
         const parsed = parseRemoteData(remote);
-        if (parsed && parsed.length > 0) {
-          setPurchases((prev) => (isDiff(parsed, prev) ? parsed : prev));
-        } else if (remote === null) {
-          setPurchases((prev) => {
-            if (prev.length > 0) {
-              syncToFirebase('purchases', prev);
-              syncToFirestore('purchases', prev);
-            }
-            return prev;
-          });
-        }
+        setPurchases((prev) => {
+          const merged = mergeEntitiesById(parsed, prev);
+          merged.sort((a, b) => getInvoiceTs(b) - getInvoiceTs(a));
+          if (isDiff(merged, prev)) {
+            localStorage.setItem('dukhan_purchases', JSON.stringify(merged));
+            syncToFirebase('purchases', merged);
+            syncToFirestore('purchases', merged);
+            return merged;
+          }
+          return prev;
+        });
       });
 
       const unsubReps = subscribeToFirebase('representatives', (remote) => {
         const parsed = parseRemoteData(remote);
-        if (parsed && parsed.length > 0) {
-          setRepresentatives((prev) => (isDiff(parsed, prev) ? parsed : prev));
-        } else if (remote === null) {
-          setRepresentatives((prev) => {
-            if (prev.length > 0) {
-              syncToFirebase('representatives', prev);
-              syncToFirestore('representatives', prev);
-            }
-            return prev;
-          });
-        }
+        setRepresentatives((prev) => {
+          const merged = mergeEntitiesById(parsed, prev);
+          if (isDiff(merged, prev)) {
+            localStorage.setItem('dukhan_representatives', JSON.stringify(merged));
+            syncToFirebase('representatives', merged);
+            syncToFirestore('representatives', merged);
+            return merged;
+          }
+          return prev;
+        });
       });
 
       const unsubExpenses = subscribeToFirebase('expenses', (remote) => {
         const parsed = parseRemoteData(remote);
-        if (parsed && parsed.length > 0) {
-          setExpenses((prev) => (isDiff(parsed, prev) ? parsed : prev));
-        } else if (remote === null) {
-          setExpenses((prev) => {
-            if (prev.length > 0) {
-              syncToFirebase('expenses', prev);
-              syncToFirestore('expenses', prev);
-            }
-            return prev;
-          });
-        }
+        setExpenses((prev) => {
+          const merged = mergeEntitiesById(parsed, prev);
+          if (isDiff(merged, prev)) {
+            localStorage.setItem('dukhan_expenses', JSON.stringify(merged));
+            syncToFirebase('expenses', merged);
+            syncToFirestore('expenses', merged);
+            return merged;
+          }
+          return prev;
+        });
       });
 
       const unsubNotifications = subscribeToFirebase('notifications', (remote) => {
         const parsed = parseRemoteData(remote);
-        if (parsed && parsed.length > 0) {
-          setNotifications((prev) => (isDiff(parsed, prev) ? parsed : prev));
-        } else if (remote === null) {
-          setNotifications((prev) => {
-            if (prev.length > 0) {
-              syncToFirebase('notifications', prev);
-              syncToFirestore('notifications', prev);
-            }
-            return prev;
-          });
-        }
+        setNotifications((prev) => {
+          const merged = mergeEntitiesById(parsed, prev);
+          if (isDiff(merged, prev)) {
+            localStorage.setItem('dukhan_notifications', JSON.stringify(merged));
+            syncToFirebase('notifications', merged);
+            syncToFirestore('notifications', merged);
+            return merged;
+          }
+          return prev;
+        });
       });
 
       const unsubUsers = subscribeToFirebase('users', (remoteUsers) => {
         const parsed = parseRemoteData(remoteUsers);
-        if (parsed && parsed.length > 0) {
-          setUsers((prev) => (isDiff(parsed, prev) ? parsed : prev));
-        } else if (remoteUsers === null) {
-          setUsers((prev) => {
-            if (prev.length > 0) {
-              syncToFirebase('users', prev);
-              syncToFirestore('users', prev);
-            }
-            return prev;
-          });
-        }
+        setUsers((prev) => {
+          const merged = mergeEntitiesById(parsed, prev);
+          if (isDiff(merged, prev)) {
+            localStorage.setItem('dukhan_users', JSON.stringify(merged));
+            syncToFirebase('users', merged);
+            syncToFirestore('users', merged);
+            return merged;
+          }
+          return prev;
+        });
       });
       const unsubCapital = subscribeToFirebase('capital_cash', (remoteCap) => {
         if (typeof remoteCap === 'number') {
