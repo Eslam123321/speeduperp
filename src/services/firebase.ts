@@ -67,7 +67,19 @@ export const syncToFirebase = async (path: string, data: any) => {
   if (!rtdb) return;
   try {
     const dbRef = ref(rtdb, path);
-    await set(dbRef, data);
+    if (Array.isArray(data)) {
+      const objData: Record<string, any> = {};
+      data.forEach((item, idx) => {
+        if (item && item.id) {
+          objData[String(item.id)] = item;
+        } else {
+          objData[String(idx)] = item;
+        }
+      });
+      await set(dbRef, objData);
+    } else {
+      await set(dbRef, data);
+    }
   } catch (err) {
     console.error(`Firebase Sync Error at ${path}:`, err);
   }

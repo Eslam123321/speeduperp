@@ -161,6 +161,7 @@ export interface SystemUser {
   id: string;
   name: string;
   username: string;
+  email?: string;                  // البريد الإلكتروني للموظف/المستخدم
   password?: string;
   role: 'admin' | 'inventory_manager' | 'cashier' | 'custom';
   permissions: PermissionType[];   // مصفوفة الصلاحيات الممنوحة
@@ -203,4 +204,28 @@ export interface FirebaseConfigInput {
   appId: string;
   measurementId?: string;
 }
+
+export interface EmailSettings {
+  enabled: boolean;                  // تفعيل الإرسال التلقائي للفواتير
+  adminEmail: string;                // إيميل الأدمن الرئيسي
+  notifyEmployeeOnCreation: boolean; // إرسال نسخة لإيميل الموظف منشئ الفاتورة
+  additionalEmails: string[];        // إيميلات موظفين/مراقبين إضافيين
+  serviceProvider: 'emailjs' | 'webhook' | 'mailto';
+  emailjsServiceId?: string;
+  emailjsTemplateId?: string;
+  emailjsPublicKey?: string;
+  webhookUrl?: string;
+}
+
+export interface EmailLog {
+  id: string;
+  invoiceNumber: string;
+  recipientEmail: string;
+  recipientType: 'admin' | 'employee' | 'custom';
+  sentAt: string;
+  status: 'success' | 'failed';
+  errorMessage?: string;
+  invoiceType: 'sale' | 'purchase';
+}
+
 

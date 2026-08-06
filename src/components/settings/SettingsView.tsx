@@ -20,9 +20,14 @@ import {
   CheckSquare,
   Square,
   Sparkles,
+  Mail,
+  Send,
+  Check,
+  SendHorizontal,
+  ListFilter,
 } from 'lucide-react';
 import { useERP } from '../../context/ERPContext';
-import { FirebaseConfigInput, SystemUser, PermissionType } from '../../types';
+import { FirebaseConfigInput, SystemUser, PermissionType, EmailSettings } from '../../types';
 import { ConfirmDeleteModal } from '../common/ConfirmDeleteModal';
 
 const ALL_PERMISSIONS_OPTIONS: { id: PermissionType; label: string; desc: string }[] = [
@@ -47,6 +52,10 @@ export const SettingsView: React.FC = () => {
     createUserAccount,
     updateUserAccount,
     deleteUserAccount,
+    emailSettings,
+    emailLogs,
+    updateEmailSettings,
+    sendInvoiceEmailNotification,
   } = useERP();
 
   const [configForm, setConfigForm] = useState<FirebaseConfigInput>(
@@ -68,15 +77,23 @@ export const SettingsView: React.FC = () => {
   const [userToDelete, setUserToDelete] = useState<SystemUser | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
+  // Email Configuration State
+  const [emailFormState, setEmailFormState] = useState<EmailSettings>(emailSettings);
+  const [emailSaveMsg, setEmailSaveMsg] = useState<string>('');
+  const [testingEmail, setTestingEmail] = useState<boolean>(false);
+  const [testEmailMsg, setTestEmailMsg] = useState<{ success?: boolean; text?: string }>({});
+
   const [formUserData, setFormUserData] = useState<{
     name: string;
     username: string;
+    email: string;
     password: string;
     role: 'admin' | 'inventory_manager' | 'cashier' | 'custom';
     selectedPermissions: PermissionType[];
   }>({
     name: '',
     username: '',
+    email: '',
     password: '',
     role: 'cashier',
     selectedPermissions: ['pos_sales', 'customers_debts'],
@@ -87,6 +104,49 @@ export const SettingsView: React.FC = () => {
   const handleSaveConfig = (e: React.FormEvent) => {
     e.preventDefault();
     saveFirebaseConfig(configForm);
+  };
+
+  const handleSaveEmailForm = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateEmailSettings(emailFormState);
+    setEmailSaveMsg('تم حفظ إعدادات البريد الإلكتروني بنجاح!');
+    setTimeout(() => setEmailSaveMsg(''), 4000);
+  };
+
+  const handleTestEmailDispatch = async () => {
+    setTestingEmail(true);
+    setTestEmailMsg({});
+    const dummySale: any = {
+      id: `test-${Date.now()}`,
+      invoiceNumber: 'INV-TEST-001',
+      date: new Date().toLocaleString('ar-EG'),
+      customerName: 'عميل تجريبي لتجربة الإيميل',
+      createdByName: currentUser ? currentUser.name : 'المدير العام',
+      items: [
+        {
+          productId: 'p1',
+          productName: 'صنف تجريبي لاختبار الإرسال',
+          unitLabel: 'علبة',
+          quantity: 2,
+          unitPrice: 50,
+          total: 100,
+        },
+      ],
+      totalCost: 80,
+      totalAmount: 100,
+      discount: 0,
+      finalAmount: 100,
+      netProfit: 20,
+      paymentMethod: 'cash',
+      paidAmount: 100,
+      remainingAmount: 0,
+      notes: 'تجربة إرسال البريد الإلكتروني من إعدادات Speedup ERP',
+    };
+
+    const targetEmails = emailFormState.adminEmail ? [emailFormState.adminEmail] : [];
+    const res = await sendInvoiceEmailNotification(dummySale, 'sale', targetEmails);
+    setTestingEmail(false);
+    setTestEmailMsg({ success: res.success, text: res.message });
   };
 
   const handleDownloadBackup = () => {
@@ -149,6 +209,7 @@ export const SettingsView: React.FC = () => {
     setFormUserData({
       name: '',
       username: '',
+      email: '',
       password: '',
       role: 'cashier',
       selectedPermissions: ['pos_sales', 'customers_debts'],
@@ -164,6 +225,7 @@ export const SettingsView: React.FC = () => {
     setFormUserData({
       name: u.name,
       username: u.username,
+      email: u.email || '',
       password: u.password || '123',
       role: u.role,
       selectedPermissions: cleanPerms.length > 0 ? cleanPerms : ['pos_sales'],
@@ -192,6 +254,7 @@ export const SettingsView: React.FC = () => {
       const res = updateUserAccount(editingUser.id, {
         name: formUserData.name,
         username: formUserData.username.trim().toLowerCase(),
+        email: formUserData.email.trim(),
         password: formUserData.password.trim(),
         role: assignedRole,
         permissions: formUserData.selectedPermissions,
@@ -202,6 +265,7 @@ export const SettingsView: React.FC = () => {
       const res = createUserAccount({
         name: formUserData.name,
         username: formUserData.username.trim().toLowerCase(),
+        email: formUserData.email.trim(),
         password: formUserData.password.trim(),
         role: assignedRole,
         permissions: formUserData.selectedPermissions,
@@ -265,7 +329,7 @@ export const SettingsView: React.FC = () => {
               <ShieldCheck className="w-5 h-5 text-amber-400" />
               <span>إدارة حسابات مستخدمي النظام والصلاحيات المتعددة</span>
             </h3>
-            <p className="text-xs text-slate-400 mt-0.5">يمكن للمدير إنشاء مستخدم جديد، التعديل على الحسابات الحالية، وتعديل الباسوورد والصلاحيات</p>
+            <p className="text-xs text-slate-400 mt-0.5">يمكن للمدير إنشاء مستخدم جديد، التعديل على الحسابات الحالية، وتعديل البريد ككلمة السر والصلاحيات</p>
           </div>
 
           {currentUser.role === 'admin' && (
@@ -287,11 +351,12 @@ export const SettingsView: React.FC = () => {
 
         {/* Existing Users Table */}
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[700px] text-right text-xs">
+          <table className="w-full min-w-[750px] text-right text-xs">
             <thead className="bg-slate-950/60 text-slate-400 border-b border-slate-800">
               <tr>
                 <th className="p-3">اسم المستخدم بالكامل</th>
                 <th className="p-3">اسم الدخول (Username)</th>
+                <th className="p-3">البريد الإلكتروني (Email)</th>
                 <th className="p-3">كلمة السر (Password)</th>
                 <th className="p-3">الصلاحيات الممنوحة</th>
                 <th className="p-3 text-center">إجراءات والتعديل</th>
@@ -309,6 +374,13 @@ export const SettingsView: React.FC = () => {
                     </div>
                   </td>
                   <td className="p-3 font-mono text-amber-400 font-bold">{u.username}</td>
+                  <td className="p-3 font-mono text-slate-300">
+                    {u.email ? (
+                      <span className="text-cyan-400 font-semibold">{u.email}</span>
+                    ) : (
+                      <span className="text-slate-500 italic">غير محدد</span>
+                    )}
+                  </td>
                   <td className="p-3 font-mono text-slate-300">
                     {currentUser.role === 'admin' ? u.password || '123' : '••••••••'}
                   </td>
@@ -347,7 +419,269 @@ export const SettingsView: React.FC = () => {
         </div>
       </div>
 
+      {/* Email Notification Settings Section */}
+      <div className="glass-panel p-6 space-y-5 border-cyan-500/30">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+          <div>
+            <h3 className="font-extrabold text-base text-white flex items-center gap-2">
+              <Mail className="w-5 h-5 text-cyan-400" />
+              <span>إعدادات البريد الإلكتروني والإشعارات التلقائية للفواتير</span>
+            </h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              تسميع وإرسال نسخة تلقائية من الفواتير (مبيعات ومشتريات) عند الضغط على إتمام لبريد الأدمن والموظفين.
+            </p>
+          </div>
 
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleTestEmailDispatch}
+              disabled={testingEmail}
+              className="flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-cyan-500/30 text-cyan-300 font-bold text-xs transition-all disabled:opacity-50"
+            >
+              <SendHorizontal className="w-4 h-4" />
+              <span>{testingEmail ? 'جاري الإرسال...' : 'اختبار إيميل تجريبي'}</span>
+            </button>
+          </div>
+        </div>
+
+        {emailSaveMsg && (
+          <div className="p-3 rounded-xl text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+            {emailSaveMsg}
+          </div>
+        )}
+
+        {testEmailMsg.text && (
+          <div className={`p-3 rounded-xl text-xs font-bold ${testEmailMsg.success ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
+            {testEmailMsg.text}
+          </div>
+        )}
+
+        <form onSubmit={handleSaveEmailForm} className="space-y-4 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="p-4 bg-slate-900/80 rounded-xl border border-slate-800 flex items-center justify-between">
+              <div>
+                <strong className="block text-white font-bold">تفعيل الإرسال التلقائي للفواتير</strong>
+                <span className="text-[11px] text-slate-400">إرسال البريد تلقائياً بمجرد إتمام الفاتورة</span>
+              </div>
+              <input
+                type="checkbox"
+                checked={emailFormState.enabled}
+                onChange={(e) => setEmailFormState({ ...emailFormState, enabled: e.target.checked })}
+                className="w-5 h-5 accent-cyan-500 cursor-pointer"
+              />
+            </div>
+
+            <div className="p-4 bg-slate-900/80 rounded-xl border border-slate-800 flex items-center justify-between">
+              <div>
+                <strong className="block text-white font-bold">إرسال نسخة بريدية للموظف منشئ الفاتورة</strong>
+                <span className="text-[11px] text-slate-400">إرسال الإشعار لبريد الكاشير/الموظف المسؤول</span>
+              </div>
+              <input
+                type="checkbox"
+                checked={emailFormState.notifyEmployeeOnCreation}
+                onChange={(e) => setEmailFormState({ ...emailFormState, notifyEmployeeOnCreation: e.target.checked })}
+                className="w-5 h-5 accent-cyan-500 cursor-pointer"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block font-bold text-slate-300 mb-1">البريد الإلكتروني للـ الأدمن الرئيسي *</label>
+              <input
+                type="email"
+                required
+                value={emailFormState.adminEmail}
+                onChange={(e) => setEmailFormState({ ...emailFormState, adminEmail: e.target.value })}
+                placeholder="admin@speeduperp.com"
+                className="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white font-mono focus:outline-none focus:border-cyan-500"
+              />
+            </div>
+
+            <div>
+              <label className="block font-bold text-slate-300 mb-1">إيميلات مراقبين وموظفين إضافيين (مفصولة بفواصل)</label>
+              <input
+                type="text"
+                value={(emailFormState.additionalEmails || []).join(', ')}
+                onChange={(e) =>
+                  setEmailFormState({
+                    ...emailFormState,
+                    additionalEmails: e.target.value.split(',').map((s) => s.trim()),
+                  })
+                }
+                placeholder="mngr@company.com, audit@company.com"
+                className="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white font-mono focus:outline-none focus:border-cyan-500"
+              />
+            </div>
+          </div>
+
+          {/* Service Provider selection */}
+          <div className="p-4 bg-slate-900/60 rounded-xl border border-slate-800 space-y-3">
+            <label className="block font-bold text-cyan-400">مزود خدمة البريد الإلكتروني (Email Provider)</label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <label
+                className={`p-3 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
+                  emailFormState.serviceProvider === 'emailjs'
+                    ? 'bg-cyan-500/10 border-cyan-500 text-white font-bold'
+                    : 'bg-slate-800 border-slate-700 text-slate-400'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="serviceProvider"
+                  value="emailjs"
+                  checked={emailFormState.serviceProvider === 'emailjs'}
+                  onChange={() => setEmailFormState({ ...emailFormState, serviceProvider: 'emailjs' })}
+                  className="hidden"
+                />
+                <Mail className="w-4 h-4 text-cyan-400" />
+                <span>EmailJS API (مباشر مجاني)</span>
+              </label>
+
+              <label
+                className={`p-3 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
+                  emailFormState.serviceProvider === 'webhook'
+                    ? 'bg-cyan-500/10 border-cyan-500 text-white font-bold'
+                    : 'bg-slate-800 border-slate-700 text-slate-400'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="serviceProvider"
+                  value="webhook"
+                  checked={emailFormState.serviceProvider === 'webhook'}
+                  onChange={() => setEmailFormState({ ...emailFormState, serviceProvider: 'webhook' })}
+                  className="hidden"
+                />
+                <Cloud className="w-4 h-4 text-cyan-400" />
+                <span>Custom Webhook Endpoint</span>
+              </label>
+
+              <label
+                className={`p-3 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
+                  emailFormState.serviceProvider === 'mailto'
+                    ? 'bg-cyan-500/10 border-cyan-500 text-white font-bold'
+                    : 'bg-slate-800 border-slate-700 text-slate-400'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="serviceProvider"
+                  value="mailto"
+                  checked={emailFormState.serviceProvider === 'mailto'}
+                  onChange={() => setEmailFormState({ ...emailFormState, serviceProvider: 'mailto' })}
+                  className="hidden"
+                />
+                <Send className="w-4 h-4 text-cyan-400" />
+                <span>سجل محلي وإشعار النظام</span>
+              </label>
+            </div>
+
+            {emailFormState.serviceProvider === 'emailjs' && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-400 mb-1">Service ID</label>
+                  <input
+                    type="text"
+                    value={emailFormState.emailjsServiceId || ''}
+                    onChange={(e) => setEmailFormState({ ...emailFormState, emailjsServiceId: e.target.value })}
+                    placeholder="service_xxx"
+                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-400 mb-1">Template ID</label>
+                  <input
+                    type="text"
+                    value={emailFormState.emailjsTemplateId || ''}
+                    onChange={(e) => setEmailFormState({ ...emailFormState, emailjsTemplateId: e.target.value })}
+                    placeholder="template_xxx"
+                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-400 mb-1">Public Key / User ID</label>
+                  <input
+                    type="text"
+                    value={emailFormState.emailjsPublicKey || ''}
+                    onChange={(e) => setEmailFormState({ ...emailFormState, emailjsPublicKey: e.target.value })}
+                    placeholder="pk_xxx"
+                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white font-mono"
+                  />
+                </div>
+              </div>
+            )}
+
+            {emailFormState.serviceProvider === 'webhook' && (
+              <div className="pt-2">
+                <label className="block text-[11px] font-semibold text-slate-400 mb-1">Webhook URL</label>
+                <input
+                  type="url"
+                  value={emailFormState.webhookUrl || ''}
+                  onChange={(e) => setEmailFormState({ ...emailFormState, webhookUrl: e.target.value })}
+                  placeholder="https://api.yourdomain.com/send-email"
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white font-mono"
+                />
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <button
+              type="submit"
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-500/20 transition-all"
+            >
+              <Check className="w-4 h-4" />
+              <span>حفظ إعدادات البريد الإلكتروني</span>
+            </button>
+          </div>
+        </form>
+
+        {/* Email Logs History Table */}
+        {emailLogs.length > 0 && (
+          <div className="pt-4 border-t border-slate-800 space-y-3">
+            <h4 className="font-extrabold text-sm text-white flex items-center gap-2">
+              <ListFilter className="w-4 h-4 text-cyan-400" />
+              <span>سجل الفواتير المرسلة بالبريد الإلكتروني مؤخراً ({emailLogs.length})</span>
+            </h4>
+            <div className="overflow-x-auto max-h-52 overflow-y-auto">
+              <table className="w-full text-right text-xs">
+                <thead className="bg-slate-950/80 text-slate-400 sticky top-0">
+                  <tr>
+                    <th className="p-2">رقم الفاتورة</th>
+                    <th className="p-2">المستلم (Email)</th>
+                    <th className="p-2">نوع المستلم</th>
+                    <th className="p-2">وقت الإرسال</th>
+                    <th className="p-2 text-center">الحالة</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800">
+                  {emailLogs.slice(0, 10).map((log) => (
+                    <tr key={log.id} className="hover:bg-slate-800/40">
+                      <td className="p-2 font-mono font-bold text-amber-400">{log.invoiceNumber}</td>
+                      <td className="p-2 font-mono text-cyan-300">{log.recipientEmail}</td>
+                      <td className="p-2 text-slate-300">
+                        {log.recipientType === 'admin' ? 'مدير (Admin)' : log.recipientType === 'employee' ? 'موظف (Employee)' : 'مراقب'}
+                      </td>
+                      <td className="p-2 text-slate-400">{log.sentAt}</td>
+                      <td className="p-2 text-center">
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            log.status === 'success' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                          }`}
+                        >
+                          {log.status === 'success' ? 'تم الإرسال ✓' : 'فشل الإرسال ✕'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Add / Edit User Account Modal */}
       {showAddUserModal && (
@@ -385,16 +719,29 @@ export const SettingsView: React.FC = () => {
                 </div>
               </div>
 
-              <div>
-                <label className="block font-bold text-slate-300 mb-1">كلمة السر (Password) *</label>
-                <input
-                  type="password"
-                  required
-                  value={formUserData.password}
-                  onChange={(e) => setFormUserData({ ...formUserData, password: e.target.value })}
-                  placeholder="أدخل كلمة السر للحساب"
-                  className="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white font-mono focus:outline-none"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-300 mb-1">البريد الإلكتروني (Email)</label>
+                  <input
+                    type="email"
+                    value={formUserData.email}
+                    onChange={(e) => setFormUserData({ ...formUserData, email: e.target.value })}
+                    placeholder="employee@example.com"
+                    className="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white font-mono focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-300 mb-1">كلمة السر (Password) *</label>
+                  <input
+                    type="password"
+                    required
+                    value={formUserData.password}
+                    onChange={(e) => setFormUserData({ ...formUserData, password: e.target.value })}
+                    placeholder="أدخل كلمة السر للحساب"
+                    className="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white font-mono focus:outline-none"
+                  />
+                </div>
               </div>
 
               {/* Granular Permissions Checkboxes Matrix */}

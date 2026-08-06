@@ -15,7 +15,15 @@ import {
   PermissionType,
   EmployeeAssignment,
   EmployeeStockItem,
+  EmailSettings,
+  EmailLog,
 } from '../types';
+import {
+  DEFAULT_EMAIL_SETTINGS,
+  buildSaleInvoiceHTML,
+  buildPurchaseInvoiceHTML,
+  dispatchEmail,
+} from '../services/emailService';
 import {
   INITIAL_PRODUCTS,
   INITIAL_CUSTOMERS,
@@ -51,6 +59,7 @@ interface ERPContextType {
   createUserAccount: (userData: {
     name: string;
     username: string;
+    email?: string;
     password?: string;
     role: 'admin' | 'inventory_manager' | 'cashier' | 'custom';
     permissions: PermissionType[];
@@ -162,6 +171,16 @@ interface ERPContextType {
   // Cloud Sync & Cache Busting
   isInitialSyncing: boolean;
   forceRefreshData: () => void;
+
+  // Email Notification Operations
+  emailSettings: EmailSettings;
+  emailLogs: EmailLog[];
+  updateEmailSettings: (settings: EmailSettings) => void;
+  sendInvoiceEmailNotification: (
+    invoice: SaleInvoice | PurchaseInvoice,
+    invoiceType: 'sale' | 'purchase',
+    overrideEmails?: string[]
+  ) => Promise<{ success: boolean; message: string }>;
 }
 
 const ERPContext = createContext<ERPContextType | undefined>(undefined);
@@ -256,6 +275,17 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Employee Assignments State
   const [employeeAssignments, setEmployeeAssignments] = useState<EmployeeAssignment[]>(() => {
     const saved = localStorage.getItem('dukhan_employee_assignments');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // Email Notification State
+  const [emailSettings, setEmailSettings] = useState<EmailSettings>(() => {
+    const saved = localStorage.getItem('dukhan_email_settings');
+    return saved ? JSON.parse(saved) : DEFAULT_EMAIL_SETTINGS;
+  });
+
+  const [emailLogs, setEmailLogs] = useState<EmailLog[]>(() => {
+    const saved = localStorage.getItem('dukhan_email_logs');
     return saved ? JSON.parse(saved) : [];
   });
 
@@ -479,6 +509,16 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [users]);
 
   useEffect(() => {
+    localStorage.setItem('dukhan_email_settings', JSON.stringify(emailSettings));
+    syncToFirebase('email_settings', emailSettings);
+  }, [emailSettings]);
+
+  useEffect(() => {
+    localStorage.setItem('dukhan_email_logs', JSON.stringify(emailLogs));
+    syncToFirebase('email_logs', emailLogs);
+  }, [emailLogs]);
+
+  useEffect(() => {
     if (loggedInUser) {
       sessionStorage.setItem('dukhan_logged_user_session', JSON.stringify(loggedInUser));
     } else {
@@ -507,11 +547,30 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return null;
       };
 
+      const mergeEntitiesById = (remoteItems: any[], localItems: any[]) => {
+        const map = new Map<string, any>();
+        localItems.forEach((item) => {
+          if (item && item.id) map.set(String(item.id), item);
+        });
+        remoteItems.forEach((item) => {
+          if (item && item.id) map.set(String(item.id), item);
+        });
+        return Array.from(map.values());
+      };
+
       // Realtime live subscriptions for ALL entities across devices (Mobile + Desktop)
       const unsubProducts = subscribeToFirebase('products', (remote) => {
         const parsed = parseRemoteData(remote);
         if (parsed && parsed.length > 0) {
-          setProducts((prev) => (isDiff(parsed, prev) ? parsed : prev));
+          setProducts((prev) => {
+            const merged = mergeEntitiesById(parsed, prev);
+            if (isDiff(merged, prev)) {
+              syncToFirebase('products', merged);
+              syncToFirestore('products', merged);
+              return merged;
+            }
+            return prev;
+          });
         } else if (remote === null) {
           setProducts((prev) => {
             if (prev.length > 0) {
@@ -526,7 +585,15 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const unsubCustomers = subscribeToFirebase('customers', (remote) => {
         const parsed = parseRemoteData(remote);
         if (parsed && parsed.length > 0) {
-          setCustomers((prev) => (isDiff(parsed, prev) ? parsed : prev));
+          setCustomers((prev) => {
+            const merged = mergeEntitiesById(parsed, prev);
+            if (isDiff(merged, prev)) {
+              syncToFirebase('customers', merged);
+              syncToFirestore('customers', merged);
+              return merged;
+            }
+            return prev;
+          });
         } else if (remote === null) {
           setCustomers((prev) => {
             if (prev.length > 0) {
@@ -541,7 +608,15 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const unsubSuppliers = subscribeToFirebase('suppliers', (remote) => {
         const parsed = parseRemoteData(remote);
         if (parsed && parsed.length > 0) {
-          setSuppliers((prev) => (isDiff(parsed, prev) ? parsed : prev));
+          setSuppliers((prev) => {
+            const merged = mergeEntitiesById(parsed, prev);
+            if (isDiff(merged, prev)) {
+              syncToFirebase('suppliers', merged);
+              syncToFirestore('suppliers', merged);
+              return merged;
+            }
+            return prev;
+          });
         } else if (remote === null) {
           setSuppliers((prev) => {
             if (prev.length > 0) {
@@ -556,7 +631,21 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const unsubSales = subscribeToFirebase('sales', (remote) => {
         const parsed = parseRemoteData(remote);
         if (parsed && parsed.length > 0) {
-          setSales((prev) => (isDiff(parsed, prev) ? parsed : prev));
+          setSales((prev) => {
+            const merged = mergeEntitiesById(parsed, prev);
+            // Sort merged sales so newest invoices remain on top
+            merged.sort((a, b) => {
+              const tsA = Number(String(a.id || '').replace('sale-', '')) || 0;
+              const tsB = Number(String(b.id || '').replace('sale-', '')) || 0;
+              return tsB - tsA;
+            });
+            if (isDiff(merged, prev)) {
+              syncToFirebase('sales', merged);
+              syncToFirestore('sales', merged);
+              return merged;
+            }
+            return prev;
+          });
         } else if (remote === null) {
           setSales((prev) => {
             if (prev.length > 0) {
@@ -685,6 +774,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const createUserAccount = (userData: {
     name: string;
     username: string;
+    email?: string;
     password?: string;
     role: 'admin' | 'inventory_manager' | 'cashier' | 'custom';
     permissions: PermissionType[];
@@ -700,6 +790,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: `usr-${Date.now()}`,
       name: userData.name,
       username: userData.username.trim().toLowerCase(),
+      email: userData.email,
       password: userData.password || '123',
       role: userData.role,
       permissions: userData.permissions,
@@ -996,6 +1087,11 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
     ]);
 
+    // Auto-send invoice email notification
+    sendInvoiceEmailNotification(newInvoice, 'sale').catch((err) =>
+      console.error('Auto sale email notification error:', err)
+    );
+
     return newInvoice;
   };
 
@@ -1159,6 +1255,12 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     ]);
 
     setPurchases((prev) => [newPurchase, ...prev]);
+
+    // Auto-send invoice email notification
+    sendInvoiceEmailNotification(newPurchase, 'purchase').catch((err) =>
+      console.error('Auto purchase email notification error:', err)
+    );
+
     return newPurchase;
   };
 
@@ -1547,6 +1649,93 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.clear();
   };
 
+  const updateEmailSettings = (newSettings: EmailSettings) => {
+    setEmailSettings(newSettings);
+  };
+
+  const sendInvoiceEmailNotification = async (
+    invoice: SaleInvoice | PurchaseInvoice,
+    invoiceType: 'sale' | 'purchase',
+    overrideEmails?: string[]
+  ): Promise<{ success: boolean; message: string }> => {
+    if (!emailSettings.enabled && (!overrideEmails || overrideEmails.length === 0)) {
+      return { success: false, message: 'إرسال البريد الإلكتروني غير مفعّل في الإعدادات.' };
+    }
+
+    const recipients: { email: string; type: 'admin' | 'employee' | 'custom' }[] = [];
+
+    if (overrideEmails && overrideEmails.length > 0) {
+      overrideEmails.forEach((e) => {
+        if (e && e.includes('@')) recipients.push({ email: e.trim(), type: 'custom' });
+      });
+    } else {
+      if (emailSettings.adminEmail) {
+        recipients.push({ email: emailSettings.adminEmail.trim(), type: 'admin' });
+      }
+      if (emailSettings.notifyEmployeeOnCreation && currentUser && currentUser.email) {
+        recipients.push({ email: currentUser.email.trim(), type: 'employee' });
+      }
+      if (emailSettings.additionalEmails && emailSettings.additionalEmails.length > 0) {
+        emailSettings.additionalEmails.forEach((e) => {
+          if (e && e.includes('@')) recipients.push({ email: e.trim(), type: 'custom' });
+        });
+      }
+    }
+
+    const uniqueRecipients = recipients.filter(
+      (r, index, self) => index === self.findIndex((t) => t.email.toLowerCase() === r.email.toLowerCase())
+    );
+
+    if (uniqueRecipients.length === 0) {
+      return { success: false, message: 'لم يتم تحديد أي بريد إلكتروني صالح لاستلام الفاتورة.' };
+    }
+
+    const htmlContent =
+      invoiceType === 'sale'
+        ? buildSaleInvoiceHTML(invoice as SaleInvoice)
+        : buildPurchaseInvoiceHTML(invoice as PurchaseInvoice);
+
+    const subject =
+      invoiceType === 'sale'
+        ? `[Speedup ERP] فاتورة مبيعات جديدة #${invoice.invoiceNumber} - ${(invoice as SaleInvoice).finalAmount.toLocaleString('ar-EG')} ج.م`
+        : `[Speedup ERP] فاتورة مشتريات جديدة #${invoice.invoiceNumber} - ${(invoice as PurchaseInvoice).totalAmount.toLocaleString('ar-EG')} ج.م`;
+
+    let successCount = 0;
+    const newLogs: EmailLog[] = [];
+
+    for (const rec of uniqueRecipients) {
+      const result = await dispatchEmail({
+        toEmail: rec.email,
+        subject,
+        htmlContent,
+        settings: emailSettings,
+      });
+
+      if (result.success) {
+        successCount++;
+      }
+
+      newLogs.push({
+        id: `elog-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        invoiceNumber: invoice.invoiceNumber,
+        recipientEmail: rec.email,
+        recipientType: rec.type,
+        sentAt: new Date().toLocaleString('ar-EG'),
+        status: result.success ? 'success' : 'failed',
+        errorMessage: result.error,
+        invoiceType,
+      });
+    }
+
+    setEmailLogs((prev) => [...newLogs, ...prev]);
+
+    if (successCount > 0) {
+      return { success: true, message: `تم إرسال الفاتورة بنجاح إلى (${successCount}) بريد إلكتروني ✉️` };
+    } else {
+      return { success: false, message: 'فشل إرسال البريد الإلكتروني.' };
+    }
+  };
+
   return (
     <ERPContext.Provider
       value={{
@@ -1628,6 +1817,10 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateEmployeeAssignment,
         isInitialSyncing,
         forceRefreshData,
+        emailSettings,
+        emailLogs,
+        updateEmailSettings,
+        sendInvoiceEmailNotification,
       }}
     >
       {children}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Printer, X, CheckCircle2, Cigarette, MessageSquareShare, Download, Loader2, Image as ImageIcon } from 'lucide-react';
+import { Printer, X, CheckCircle2, Cigarette, MessageSquareShare, Download, Loader2, Image as ImageIcon, Mail } from 'lucide-react';
 import { SaleInvoice } from '../../types';
 import { useERP } from '../../context/ERPContext';
 import { downloadInvoicePDF, shareInvoiceViaWhatsApp, shareInvoiceImageViaWhatsApp, downloadInvoiceImage } from '../../utils/pdfGenerator';
@@ -10,8 +10,10 @@ interface InvoicePrintModalProps {
 }
 
 export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({ invoice, onClose }) => {
-  const { customers, getWhatsAppShareUrl, confirmSaleInvoice, cancelDraftInvoice } = useERP();
+  const { customers, getWhatsAppShareUrl, confirmSaleInvoice, cancelDraftInvoice, sendInvoiceEmailNotification } = useERP();
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [emailFeedback, setEmailFeedback] = useState<{ success?: boolean; text?: string }>({});
 
   if (!invoice) return null;
 
@@ -27,6 +29,22 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({ invoice, o
       return confirmSaleInvoice(invoice);
     }
     return invoice;
+  };
+
+  const handleSendEmail = async () => {
+    try {
+      setIsSendingEmail(true);
+      setEmailFeedback({});
+      const activeInvoice = ensureInvoiceSaved();
+      const res = await sendInvoiceEmailNotification(activeInvoice, 'sale');
+      setEmailFeedback({ success: res.success, text: res.message });
+      setTimeout(() => setEmailFeedback({}), 4000);
+    } catch (err: any) {
+      console.error('Email send error:', err);
+      setEmailFeedback({ success: false, text: 'حدث خطأ أثناء إرسال البريد.' });
+    } finally {
+      setIsSendingEmail(false);
+    }
   };
 
   const handleWhatsAppSend = async () => {
@@ -293,6 +311,19 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({ invoice, o
             </button>
 
             <button
+              onClick={handleSendEmail}
+              disabled={isSendingEmail || isGeneratingPDF}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-700 disabled:bg-cyan-800 text-white font-bold shadow-lg shadow-cyan-600/20 transition-all text-xs cursor-pointer"
+            >
+              {isSendingEmail ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Mail className="w-4 h-4" />
+              )}
+              <span>إرسال نسخة للإيميل</span>
+            </button>
+
+            <button
               onClick={handleDownloadPDF}
               disabled={isGeneratingPDF}
               className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:bg-slate-900 text-slate-200 hover:text-white font-semibold border border-slate-700 transition-all text-xs cursor-pointer"
@@ -318,6 +349,12 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({ invoice, o
               <span>تنزيل صورة</span>
             </button>
           </div>
+
+          {emailFeedback.text && (
+            <div className={`p-2.5 rounded-xl text-xs font-bold text-center ${emailFeedback.success ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
+              {emailFeedback.text}
+            </div>
+          )}
 
           <div className="flex items-center gap-2">
             <button
