@@ -17,12 +17,23 @@ import { InvoicePrintModal } from './components/sales/InvoicePrintModal';
 import { LoginPage } from './components/auth/LoginPage';
 
 const MainLayout: React.FC = () => {
-  const { activeTab, printingInvoice, setPrintingInvoice, loggedInUser } = useERP();
+  const { activeTab, printingInvoice, setPrintingInvoice, loggedInUser, isInitialSyncing } = useERP();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // If user is not logged in, show Login Screen
   if (!loggedInUser) {
     return <LoginPage />;
+  }
+
+  // Smooth loading splash screen during initial cloud data sync on mobile / desktop
+  if (isInitialSyncing) {
+    return (
+      <div className="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center space-y-4 z-50 text-white dir-rtl">
+        <div className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+        <h2 className="text-base font-extrabold text-amber-400">حسام ERP • جاري تحديث البيانات السحابية 🔄</h2>
+        <p className="text-xs text-slate-400">يتم جلب أحدث البيانات المباشرة لضمان الدقة على الموبايل...</p>
+      </div>
+    );
   }
 
   const renderActiveTab = () => {

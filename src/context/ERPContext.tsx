@@ -158,11 +158,28 @@ interface ERPContextType {
   // Employee Assignment Operations
   employeeAssignments: EmployeeAssignment[];
   updateEmployeeAssignment: (userId: string, assignedCustomerIds: string[], assignedProducts: EmployeeStockItem[]) => void;
+
+  // Cloud Sync & Cache Busting
+  isInitialSyncing: boolean;
+  forceRefreshData: () => void;
 }
 
 const ERPContext = createContext<ERPContextType | undefined>(undefined);
 
 export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [isInitialSyncing, setIsInitialSyncing] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsInitialSyncing(false);
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const forceRefreshData = () => {
+    window.location.reload();
+  };
+
   const [products, setProducts] = useState<Product[]>(() => {
     const saved = localStorage.getItem('dukhan_products');
     return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
@@ -1526,6 +1543,8 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         netTotalCapital,
         employeeAssignments,
         updateEmployeeAssignment,
+        isInitialSyncing,
+        forceRefreshData,
       }}
     >
       {children}
