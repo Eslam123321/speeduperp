@@ -498,65 +498,148 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     if (res.success) {
       const isDiff = (a: any, b: any) => JSON.stringify(a) !== JSON.stringify(b);
+      const parseRemoteData = (remote: any): any[] | null => {
+        if (Array.isArray(remote)) return remote;
+        if (remote && typeof remote === 'object') {
+          const vals = Object.values(remote);
+          if (vals.length > 0) return vals;
+        }
+        return null;
+      };
 
       // Realtime live subscriptions for ALL entities across devices (Mobile + Desktop)
       const unsubProducts = subscribeToFirebase('products', (remote) => {
-        if (Array.isArray(remote) && remote.length > 0) {
-          setProducts((prev) => (isDiff(remote, prev) ? remote : prev));
+        const parsed = parseRemoteData(remote);
+        if (parsed && parsed.length > 0) {
+          setProducts((prev) => (isDiff(parsed, prev) ? parsed : prev));
+        } else if (remote === null) {
+          setProducts((prev) => {
+            if (prev.length > 0) {
+              syncToFirebase('products', prev);
+              syncToFirestore('products', prev);
+            }
+            return prev;
+          });
         }
       });
+
       const unsubCustomers = subscribeToFirebase('customers', (remote) => {
-        if (Array.isArray(remote)) {
-          setCustomers((prev) => (isDiff(remote, prev) ? remote : prev));
+        const parsed = parseRemoteData(remote);
+        if (parsed && parsed.length > 0) {
+          setCustomers((prev) => (isDiff(parsed, prev) ? parsed : prev));
         } else if (remote === null) {
-          setCustomers((prev) => (prev.length > 0 ? [] : prev));
+          setCustomers((prev) => {
+            if (prev.length > 0) {
+              syncToFirebase('customers', prev);
+              syncToFirestore('customers', prev);
+            }
+            return prev;
+          });
         }
       });
+
       const unsubSuppliers = subscribeToFirebase('suppliers', (remote) => {
-        if (Array.isArray(remote)) {
-          setSuppliers((prev) => (isDiff(remote, prev) ? remote : prev));
+        const parsed = parseRemoteData(remote);
+        if (parsed && parsed.length > 0) {
+          setSuppliers((prev) => (isDiff(parsed, prev) ? parsed : prev));
         } else if (remote === null) {
-          setSuppliers((prev) => (prev.length > 0 ? [] : prev));
+          setSuppliers((prev) => {
+            if (prev.length > 0) {
+              syncToFirebase('suppliers', prev);
+              syncToFirestore('suppliers', prev);
+            }
+            return prev;
+          });
         }
       });
+
       const unsubSales = subscribeToFirebase('sales', (remote) => {
-        if (Array.isArray(remote)) {
-          setSales((prev) => (isDiff(remote, prev) ? remote : prev));
+        const parsed = parseRemoteData(remote);
+        if (parsed && parsed.length > 0) {
+          setSales((prev) => (isDiff(parsed, prev) ? parsed : prev));
         } else if (remote === null) {
-          setSales((prev) => (prev.length > 0 ? [] : prev));
+          setSales((prev) => {
+            if (prev.length > 0) {
+              syncToFirebase('sales', prev);
+              syncToFirestore('sales', prev);
+            }
+            return prev;
+          });
         }
       });
+
       const unsubPurchases = subscribeToFirebase('purchases', (remote) => {
-        if (Array.isArray(remote)) {
-          setPurchases((prev) => (isDiff(remote, prev) ? remote : prev));
+        const parsed = parseRemoteData(remote);
+        if (parsed && parsed.length > 0) {
+          setPurchases((prev) => (isDiff(parsed, prev) ? parsed : prev));
         } else if (remote === null) {
-          setPurchases((prev) => (prev.length > 0 ? [] : prev));
+          setPurchases((prev) => {
+            if (prev.length > 0) {
+              syncToFirebase('purchases', prev);
+              syncToFirestore('purchases', prev);
+            }
+            return prev;
+          });
         }
       });
+
       const unsubReps = subscribeToFirebase('representatives', (remote) => {
-        if (Array.isArray(remote)) {
-          setRepresentatives((prev) => (isDiff(remote, prev) ? remote : prev));
+        const parsed = parseRemoteData(remote);
+        if (parsed && parsed.length > 0) {
+          setRepresentatives((prev) => (isDiff(parsed, prev) ? parsed : prev));
         } else if (remote === null) {
-          setRepresentatives((prev) => (prev.length > 0 ? [] : prev));
+          setRepresentatives((prev) => {
+            if (prev.length > 0) {
+              syncToFirebase('representatives', prev);
+              syncToFirestore('representatives', prev);
+            }
+            return prev;
+          });
         }
       });
+
       const unsubExpenses = subscribeToFirebase('expenses', (remote) => {
-        if (Array.isArray(remote)) {
-          setExpenses((prev) => (isDiff(remote, prev) ? remote : prev));
+        const parsed = parseRemoteData(remote);
+        if (parsed && parsed.length > 0) {
+          setExpenses((prev) => (isDiff(parsed, prev) ? parsed : prev));
         } else if (remote === null) {
-          setExpenses((prev) => (prev.length > 0 ? [] : prev));
+          setExpenses((prev) => {
+            if (prev.length > 0) {
+              syncToFirebase('expenses', prev);
+              syncToFirestore('expenses', prev);
+            }
+            return prev;
+          });
         }
       });
+
       const unsubNotifications = subscribeToFirebase('notifications', (remote) => {
-        if (Array.isArray(remote)) {
-          setNotifications((prev) => (isDiff(remote, prev) ? remote : prev));
+        const parsed = parseRemoteData(remote);
+        if (parsed && parsed.length > 0) {
+          setNotifications((prev) => (isDiff(parsed, prev) ? parsed : prev));
         } else if (remote === null) {
-          setNotifications((prev) => (prev.length > 0 ? [] : prev));
+          setNotifications((prev) => {
+            if (prev.length > 0) {
+              syncToFirebase('notifications', prev);
+              syncToFirestore('notifications', prev);
+            }
+            return prev;
+          });
         }
       });
+
       const unsubUsers = subscribeToFirebase('users', (remoteUsers) => {
-        if (Array.isArray(remoteUsers) && remoteUsers.length > 0) {
-          setUsers((prev) => (isDiff(remoteUsers, prev) ? remoteUsers : prev));
+        const parsed = parseRemoteData(remoteUsers);
+        if (parsed && parsed.length > 0) {
+          setUsers((prev) => (isDiff(parsed, prev) ? parsed : prev));
+        } else if (remoteUsers === null) {
+          setUsers((prev) => {
+            if (prev.length > 0) {
+              syncToFirebase('users', prev);
+              syncToFirestore('users', prev);
+            }
+            return prev;
+          });
         }
       });
       const unsubCapital = subscribeToFirebase('capital_cash', (remoteCap) => {
