@@ -255,3 +255,84 @@ export const downloadInvoiceImage = async (
   link.download = customFilename;
   link.click();
 };
+
+/**
+ * Generates PNG Image of invoice and shares via WhatsApp or downloads PNG + opens WhatsApp.
+ */
+export const shareInvoiceImageViaWhatsApp = async ({
+  invoice,
+  phone,
+  elementId,
+  getWhatsAppShareUrl,
+}: {
+  invoice: SaleInvoice;
+  phone: string;
+  elementId: string;
+  getWhatsAppShareUrl: (phone: string, textMessage: string) => string;
+}): Promise<{ sharedViaNative: boolean }> => {
+  const cleanInvoiceNum = invoice.invoiceNumber.replace(/[^a-zA-Z0-9-]/g, '_');
+  const filename = `فاتورة_${cleanInvoiceNum}.png`;
+
+  const element = document.getElementById(elementId);
+  if (!element) throw new Error('العنصر المطلوب غير موجود.');
+
+  let dataUrl = '';
+  try {
+    dataUrl = await toPng(element, {
+      quality: 0.98,
+      pixelRatio: 2,
+      backgroundColor: '#ffffff',
+      cacheBust: true,
+      filter: (node) => !(node instanceof HTMLElement && node.classList.contains('no-print')),
+    });
+  } catch (err) {
+    const html2canvas = (await import('html2canvas')).default;
+    const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+    dataUrl = canvas.toDataURL('image/png');
+  }
+
+  const res = await fetch(dataUrl);
+  const blob = await res.blob();
+  const file = new File([blob], filename, { type: 'image/png' });
+
+  const itemsSummary = invoice.items
+    .map((it) => `• ${it.productName} (${it.quantity} ${it.unitLabel}) = ${it.total.toLocaleString('ar-EG')} ج.م`)
+    .join('\n');
+
+  const textMessage = `🖼️ *صورة فاتورة مبيعات - مؤسسة الدخان والسجائر ERP*
+رقم الفاتورة: *${invoice.invoiceNumber}*
+التاريخ: ${invoice.date}
+العميل: *${invoice.customerName}*
+--------------------------------
+*الأصناف المباعة:*
+${itemsSummary}
+--------------------------------
+المجموع الصافي: *${invoice.finalAmount.toLocaleString('ar-EG')} ج.م*
+المبلغ المدفوع: *${invoice.paidAmount.toLocaleString('ar-EG')} ج.م*
+المتبقي الآجل: *${invoice.remainingAmount.toLocaleString('ar-EG')} ج.م*
+--------------------------------
+🖼️ *تنبيه:* تم إنشاء صورة الفاتورة وسوف يتم تنزيلها باسم (*${filename}*). يرجى إرفاق الصورة للعميل عبر الواتساب.`;
+
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({
+        title: `فاتورة ${invoice.invoiceNumber}`,
+        text: textMessage,
+        files: [file],
+      });
+      return { sharedViaNative: true };
+    } catch (err) {
+      console.warn('Native image share cancelled or failed, falling back to download + WhatsApp link.', err);
+    }
+  }
+
+  const link = document.createElement('a');
+  link.href = dataUrl;
+  link.download = filename;
+  link.click();
+
+  const whatsappUrl = getWhatsAppShareUrl(phone, textMessage);
+  window.open(whatsappUrl, '_blank');
+
+  return { sharedViaNative: false };
+};

@@ -144,19 +144,19 @@ export const POS: React.FC = () => {
   const handleAddToCart = (product: Product, unit: UnitType = 'carton') => {
     let unitLabel = 'قروصة';
     let packsQuantity = product.packsPerCarton;
-    let unitPrice = product.wholesalePricePerPack * product.packsPerCarton;
-    let unitCost = product.costPricePerPack * product.packsPerCarton;
+    let unitPrice = product.wholesalePricePerPack;
+    let unitCost = product.costPricePerPack;
 
     if (unit === 'pack') {
       unitLabel = 'علبة';
       packsQuantity = 1;
-      unitPrice = product.retailPricePerPack;
-      unitCost = product.costPricePerPack;
+      unitPrice = product.wholesalePricePerPack / (product.packsPerCarton || 10);
+      unitCost = product.costPricePerPack / (product.packsPerCarton || 10);
     } else if (unit === 'box') {
       unitLabel = 'كرتونة';
       packsQuantity = product.packsPerCarton * product.cartonsPerBox;
-      unitPrice = product.wholesalePricePerPack * packsQuantity;
-      unitCost = product.costPricePerPack * packsQuantity;
+      unitPrice = product.wholesalePricePerPack * product.cartonsPerBox;
+      unitCost = product.costPricePerPack * product.cartonsPerBox;
     }
 
     const existingIdx = cartItems.findIndex(
@@ -663,7 +663,7 @@ export const POS: React.FC = () => {
                           <div className="flex items-center justify-between">
                             <span className="text-slate-400 text-[11px]">سعر القروصة:</span>
                             <strong className="text-amber-400 font-extrabold text-sm">
-                              {(prod.wholesalePricePerPack * prod.packsPerCarton).toLocaleString('ar-EG')} ج.م
+                              {prod.wholesalePricePerPack.toLocaleString('ar-EG')} ج.م
                             </strong>
                           </div>
 
@@ -691,7 +691,7 @@ export const POS: React.FC = () => {
                           className="w-full py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-slate-950 font-black text-xs shadow-md shadow-emerald-500/20 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                         >
                           <Plus className="w-4 h-4" />
-                          <span>إضافة (+1 قروصة) بسعر {(prod.wholesalePricePerPack * prod.packsPerCarton).toLocaleString('ar-EG')} ج</span>
+                          <span>إضافة (+1 قروصة) بسعر {prod.wholesalePricePerPack.toLocaleString('ar-EG')} ج</span>
                         </button>
                       </div>
                     </div>

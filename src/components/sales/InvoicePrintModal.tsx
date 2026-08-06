@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Printer, X, CheckCircle2, Cigarette, MessageSquareShare, Download, Loader2, Image as ImageIcon } from 'lucide-react';
 import { SaleInvoice } from '../../types';
 import { useERP } from '../../context/ERPContext';
-import { downloadInvoicePDF, shareInvoiceViaWhatsApp, downloadInvoiceImage } from '../../utils/pdfGenerator';
+import { downloadInvoicePDF, shareInvoiceViaWhatsApp, shareInvoiceImageViaWhatsApp, downloadInvoiceImage } from '../../utils/pdfGenerator';
 
 interface InvoicePrintModalProps {
   invoice: SaleInvoice | null;
@@ -45,6 +45,27 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({ invoice, o
     } catch (err) {
       console.error('Error sharing PDF via WhatsApp:', err);
       alert('حدث خطأ أثناء تحضير ملف PDF للفاتورة.');
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
+  const handleWhatsAppImageSend = async () => {
+    try {
+      setIsGeneratingPDF(true);
+      const activeInvoice = ensureInvoiceSaved();
+      const customer = customers.find((c) => c.id === activeInvoice.customerId);
+      const phone = customer ? customer.phone : '';
+
+      await shareInvoiceImageViaWhatsApp({
+        invoice: activeInvoice,
+        phone,
+        elementId: 'printable-invoice-area',
+        getWhatsAppShareUrl,
+      });
+    } catch (err) {
+      console.error('Error sharing Image via WhatsApp:', err);
+      alert('حدث خطأ أثناء تحضير صورة الفاتورة للواتساب.');
     } finally {
       setIsGeneratingPDF(false);
     }
@@ -250,44 +271,57 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({ invoice, o
 
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center justify-between gap-3 pt-2 no-print">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={handleWhatsAppSend}
               disabled={isGeneratingPDF}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-800 text-white font-bold shadow-lg shadow-emerald-600/20 transition-all text-xs cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-800 text-white font-bold shadow-lg shadow-emerald-600/20 transition-all text-xs cursor-pointer"
             >
               {isGeneratingPDF ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <MessageSquareShare className="w-4 h-4" />
               )}
-              <span>إرسال PDF</span>
+              <span>إرسال PDF واتساب</span>
+            </button>
+
+            <button
+              onClick={handleWhatsAppImageSend}
+              disabled={isGeneratingPDF}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 disabled:bg-amber-800 text-slate-950 font-extrabold shadow-lg shadow-amber-600/20 transition-all text-xs cursor-pointer"
+            >
+              {isGeneratingPDF ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <ImageIcon className="w-4 h-4" />
+              )}
+              <span>إرسال صورة واتساب</span>
             </button>
 
             <button
               onClick={handleDownloadPDF}
               disabled={isGeneratingPDF}
-              className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:bg-slate-900 text-slate-200 hover:text-white font-semibold border border-slate-700 transition-all text-xs cursor-pointer"
+              className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:bg-slate-900 text-slate-200 hover:text-white font-semibold border border-slate-700 transition-all text-xs cursor-pointer"
             >
               {isGeneratingPDF ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <Download className="w-4 h-4 text-blue-400" />
               )}
-              <span>PDF</span>
+              <span>تنزيل PDF</span>
             </button>
 
             <button
               onClick={handleDownloadImage}
               disabled={isGeneratingPDF}
-              className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:bg-slate-900 text-slate-200 hover:text-white font-semibold border border-slate-700 transition-all text-xs cursor-pointer"
+              className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:bg-slate-900 text-slate-200 hover:text-white font-semibold border border-slate-700 transition-all text-xs cursor-pointer"
             >
               {isGeneratingPDF ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <ImageIcon className="w-4 h-4 text-amber-400" />
               )}
-              <span>صورة</span>
+              <span>تنزيل صورة</span>
             </button>
           </div>
 
