@@ -518,131 +518,68 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       // Realtime live subscriptions for ALL entities across devices (Mobile + Desktop)
       const unsubProducts = subscribeToFirebase('products', (remote) => {
+        if (!remote) return;
         const parsed = parseRemoteData(remote);
-        setProducts((prev) => {
-          const merged = mergeEntitiesById(parsed, prev);
-          const hasLocalOnly = prev.some((p) => p && p.id && !parsed.some((r) => r && r.id === p.id));
-          if (hasLocalOnly || isDiff(merged, prev)) {
-            localStorage.setItem('dukhan_products', JSON.stringify(merged));
-            syncToFirebase('products', merged);
-            syncToFirestore('products', merged);
-          }
-          return merged;
-        });
+        setProducts(parsed);
+        localStorage.setItem('dukhan_products', JSON.stringify(parsed));
       });
 
       const unsubCustomers = subscribeToFirebase('customers', (remote) => {
+        if (!remote) return;
         const parsed = parseRemoteData(remote);
-        setCustomers((prev) => {
-          const merged = mergeEntitiesById(parsed, prev);
-          const hasLocalOnly = prev.some((p) => p && p.id && !parsed.some((r) => r && r.id === p.id));
-          if (hasLocalOnly || isDiff(merged, prev)) {
-            localStorage.setItem('dukhan_customers', JSON.stringify(merged));
-            syncToFirebase('customers', merged);
-            syncToFirestore('customers', merged);
-          }
-          return merged;
-        });
+        setCustomers(parsed);
+        localStorage.setItem('dukhan_customers', JSON.stringify(parsed));
       });
 
       const unsubSuppliers = subscribeToFirebase('suppliers', (remote) => {
+        if (!remote) return;
         const parsed = parseRemoteData(remote);
-        setSuppliers((prev) => {
-          const merged = mergeEntitiesById(parsed, prev);
-          const hasLocalOnly = prev.some((p) => p && p.id && !parsed.some((r) => r && r.id === p.id));
-          if (hasLocalOnly || isDiff(merged, prev)) {
-            localStorage.setItem('dukhan_suppliers', JSON.stringify(merged));
-            syncToFirebase('suppliers', merged);
-            syncToFirestore('suppliers', merged);
-          }
-          return merged;
-        });
+        setSuppliers(parsed);
+        localStorage.setItem('dukhan_suppliers', JSON.stringify(parsed));
       });
 
       const unsubSales = subscribeToFirebase('sales', (remote) => {
+        if (!remote) return;
         const parsed = parseRemoteData(remote);
-        setSales((prev) => {
-          const merged = mergeEntitiesById(parsed, prev);
-          merged.sort((a, b) => getInvoiceTs(b) - getInvoiceTs(a));
-          const hasLocalOnly = prev.some((p) => p && p.id && !parsed.some((r) => r && r.id === p.id));
-          if (hasLocalOnly || isDiff(merged, prev)) {
-            localStorage.setItem('dukhan_sales', JSON.stringify(merged));
-            syncToFirebase('sales', merged);
-            syncToFirestore('sales', merged);
-          }
-          return merged;
-        });
+        parsed.sort((a, b) => getInvoiceTs(b) - getInvoiceTs(a));
+        setSales(parsed);
+        localStorage.setItem('dukhan_sales', JSON.stringify(parsed));
       });
 
       const unsubPurchases = subscribeToFirebase('purchases', (remote) => {
+        if (!remote) return;
         const parsed = parseRemoteData(remote);
-        setPurchases((prev) => {
-          const merged = mergeEntitiesById(parsed, prev);
-          merged.sort((a, b) => getInvoiceTs(b) - getInvoiceTs(a));
-          const hasLocalOnly = prev.some((p) => p && p.id && !parsed.some((r) => r && r.id === p.id));
-          if (hasLocalOnly || isDiff(merged, prev)) {
-            localStorage.setItem('dukhan_purchases', JSON.stringify(merged));
-            syncToFirebase('purchases', merged);
-            syncToFirestore('purchases', merged);
-          }
-          return merged;
-        });
+        parsed.sort((a, b) => getInvoiceTs(b) - getInvoiceTs(a));
+        setPurchases(parsed);
+        localStorage.setItem('dukhan_purchases', JSON.stringify(parsed));
       });
 
       const unsubReps = subscribeToFirebase('representatives', (remote) => {
+        if (!remote) return;
         const parsed = parseRemoteData(remote);
-        setRepresentatives((prev) => {
-          const merged = mergeEntitiesById(parsed, prev);
-          const hasLocalOnly = prev.some((p) => p && p.id && !parsed.some((r) => r && r.id === p.id));
-          if (hasLocalOnly || isDiff(merged, prev)) {
-            localStorage.setItem('dukhan_representatives', JSON.stringify(merged));
-            syncToFirebase('representatives', merged);
-            syncToFirestore('representatives', merged);
-          }
-          return merged;
-        });
+        setRepresentatives(parsed);
+        localStorage.setItem('dukhan_representatives', JSON.stringify(parsed));
       });
 
       const unsubExpenses = subscribeToFirebase('expenses', (remote) => {
+        if (!remote) return;
         const parsed = parseRemoteData(remote);
-        setExpenses((prev) => {
-          const merged = mergeEntitiesById(parsed, prev);
-          const hasLocalOnly = prev.some((p) => p && p.id && !parsed.some((r) => r && r.id === p.id));
-          if (hasLocalOnly || isDiff(merged, prev)) {
-            localStorage.setItem('dukhan_expenses', JSON.stringify(merged));
-            syncToFirebase('expenses', merged);
-            syncToFirestore('expenses', merged);
-          }
-          return merged;
-        });
+        setExpenses(parsed);
+        localStorage.setItem('dukhan_expenses', JSON.stringify(parsed));
       });
 
       const unsubNotifications = subscribeToFirebase('notifications', (remote) => {
+        if (!remote) return;
         const parsed = parseRemoteData(remote);
-        setNotifications((prev) => {
-          const merged = mergeEntitiesById(parsed, prev);
-          const hasLocalOnly = prev.some((p) => p && p.id && !parsed.some((r) => r && r.id === p.id));
-          if (hasLocalOnly || isDiff(merged, prev)) {
-            localStorage.setItem('dukhan_notifications', JSON.stringify(merged));
-            syncToFirebase('notifications', merged);
-            syncToFirestore('notifications', merged);
-          }
-          return merged;
-        });
+        setNotifications(parsed);
+        localStorage.setItem('dukhan_notifications', JSON.stringify(parsed));
       });
 
       const unsubUsers = subscribeToFirebase('users', (remoteUsers) => {
+        if (!remoteUsers) return;
         const parsed = parseRemoteData(remoteUsers);
-        setUsers((prev) => {
-          const merged = mergeEntitiesById(parsed, prev);
-          const hasLocalOnly = prev.some((p) => p && p.id && !parsed.some((r) => r && r.id === p.id));
-          if (hasLocalOnly || isDiff(merged, prev)) {
-            localStorage.setItem('dukhan_users', JSON.stringify(merged));
-            syncToFirebase('users', merged);
-            syncToFirestore('users', merged);
-          }
-          return merged;
-        });
+        setUsers(parsed);
+        localStorage.setItem('dukhan_users', JSON.stringify(parsed));
       });
       const unsubCapital = subscribeToFirebase('capital_cash', (remoteCap) => {
         if (typeof remoteCap === 'number') {
