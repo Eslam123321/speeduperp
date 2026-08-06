@@ -306,8 +306,9 @@ export const POS: React.FC = () => {
     });
 
     const finalAmount = Math.max(0, totalAmount - discount);
-    const netProfit = finalAmount - totalCost;
-    const actualPaid = paymentMethod === 'cash' ? finalAmount : Math.min(paidAmountInput, finalAmount);
+    const netProfit = Math.max(0, finalAmount - totalCost);
+    const safePaidInput = typeof paidAmountInput === 'number' && !isNaN(paidAmountInput) ? paidAmountInput : 0;
+    const actualPaid = paymentMethod === 'cash' ? finalAmount : Math.min(Math.max(0, safePaidInput), finalAmount);
     const remainingAmount = Math.max(0, finalAmount - actualPaid);
 
     if (editingInvoice) {
@@ -340,30 +341,25 @@ export const POS: React.FC = () => {
       return;
     }
 
-    const draftInvoice = {
-      id: `draft-${Date.now()}`,
-      invoiceNumber: `INV-2026-${String(sales.length + 1001)}`,
-      date: new Date().toLocaleString('ar-EG'),
+    // Direct Instant Invoice Creation and Save to Firebase & LocalStorage
+    const savedInvoice = createSaleInvoice({
       customerId: selectedCustomerId || undefined,
       customerName,
       representativeId: selectedRepId || undefined,
       representativeName,
       items: [...cartItems],
-      totalCost,
-      totalAmount,
       discount,
-      finalAmount,
-      netProfit,
       paymentMethod,
       paidAmount: actualPaid,
-      remainingAmount,
-      createdByRole: currentUser.role,
-      createdByName: currentUser.name,
       notes,
-      isDraft: true,
-    };
+    });
 
-    setPrintingInvoice(draftInvoice);
+    setCartItems([]);
+    setDiscount(0);
+    setPaidAmountInput(0);
+    setSelectedCustomerId('');
+    setNotes('');
+    setPrintingInvoice(savedInvoice);
   };
 
   // Employees List (Filter for logged in non-admin employee to only see their own card)
