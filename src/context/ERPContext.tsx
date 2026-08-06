@@ -541,13 +541,13 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const parsed = parseRemoteData(remote);
         setProducts((prev) => {
           const merged = mergeEntitiesById(parsed, prev);
-          if (isDiff(merged, prev)) {
+          const hasLocalOnly = prev.some((p) => p && p.id && !parsed.some((r) => r && r.id === p.id));
+          if (hasLocalOnly || isDiff(merged, prev)) {
             localStorage.setItem('dukhan_products', JSON.stringify(merged));
             syncToFirebase('products', merged);
             syncToFirestore('products', merged);
-            return merged;
           }
-          return prev;
+          return merged;
         });
       });
 
@@ -555,13 +555,13 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const parsed = parseRemoteData(remote);
         setCustomers((prev) => {
           const merged = mergeEntitiesById(parsed, prev);
-          if (isDiff(merged, prev)) {
+          const hasLocalOnly = prev.some((p) => p && p.id && !parsed.some((r) => r && r.id === p.id));
+          if (hasLocalOnly || isDiff(merged, prev)) {
             localStorage.setItem('dukhan_customers', JSON.stringify(merged));
             syncToFirebase('customers', merged);
             syncToFirestore('customers', merged);
-            return merged;
           }
-          return prev;
+          return merged;
         });
       });
 
@@ -569,13 +569,13 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const parsed = parseRemoteData(remote);
         setSuppliers((prev) => {
           const merged = mergeEntitiesById(parsed, prev);
-          if (isDiff(merged, prev)) {
+          const hasLocalOnly = prev.some((p) => p && p.id && !parsed.some((r) => r && r.id === p.id));
+          if (hasLocalOnly || isDiff(merged, prev)) {
             localStorage.setItem('dukhan_suppliers', JSON.stringify(merged));
             syncToFirebase('suppliers', merged);
             syncToFirestore('suppliers', merged);
-            return merged;
           }
-          return prev;
+          return merged;
         });
       });
 
@@ -584,13 +584,13 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setSales((prev) => {
           const merged = mergeEntitiesById(parsed, prev);
           merged.sort((a, b) => getInvoiceTs(b) - getInvoiceTs(a));
-          if (isDiff(merged, prev)) {
+          const hasLocalOnly = prev.some((p) => p && p.id && !parsed.some((r) => r && r.id === p.id));
+          if (hasLocalOnly || isDiff(merged, prev)) {
             localStorage.setItem('dukhan_sales', JSON.stringify(merged));
             syncToFirebase('sales', merged);
             syncToFirestore('sales', merged);
-            return merged;
           }
-          return prev;
+          return merged;
         });
       });
 
@@ -599,13 +599,13 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setPurchases((prev) => {
           const merged = mergeEntitiesById(parsed, prev);
           merged.sort((a, b) => getInvoiceTs(b) - getInvoiceTs(a));
-          if (isDiff(merged, prev)) {
+          const hasLocalOnly = prev.some((p) => p && p.id && !parsed.some((r) => r && r.id === p.id));
+          if (hasLocalOnly || isDiff(merged, prev)) {
             localStorage.setItem('dukhan_purchases', JSON.stringify(merged));
             syncToFirebase('purchases', merged);
             syncToFirestore('purchases', merged);
-            return merged;
           }
-          return prev;
+          return merged;
         });
       });
 
@@ -613,13 +613,13 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const parsed = parseRemoteData(remote);
         setRepresentatives((prev) => {
           const merged = mergeEntitiesById(parsed, prev);
-          if (isDiff(merged, prev)) {
+          const hasLocalOnly = prev.some((p) => p && p.id && !parsed.some((r) => r && r.id === p.id));
+          if (hasLocalOnly || isDiff(merged, prev)) {
             localStorage.setItem('dukhan_representatives', JSON.stringify(merged));
             syncToFirebase('representatives', merged);
             syncToFirestore('representatives', merged);
-            return merged;
           }
-          return prev;
+          return merged;
         });
       });
 
@@ -627,13 +627,13 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const parsed = parseRemoteData(remote);
         setExpenses((prev) => {
           const merged = mergeEntitiesById(parsed, prev);
-          if (isDiff(merged, prev)) {
+          const hasLocalOnly = prev.some((p) => p && p.id && !parsed.some((r) => r && r.id === p.id));
+          if (hasLocalOnly || isDiff(merged, prev)) {
             localStorage.setItem('dukhan_expenses', JSON.stringify(merged));
             syncToFirebase('expenses', merged);
             syncToFirestore('expenses', merged);
-            return merged;
           }
-          return prev;
+          return merged;
         });
       });
 
@@ -641,13 +641,13 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const parsed = parseRemoteData(remote);
         setNotifications((prev) => {
           const merged = mergeEntitiesById(parsed, prev);
-          if (isDiff(merged, prev)) {
+          const hasLocalOnly = prev.some((p) => p && p.id && !parsed.some((r) => r && r.id === p.id));
+          if (hasLocalOnly || isDiff(merged, prev)) {
             localStorage.setItem('dukhan_notifications', JSON.stringify(merged));
             syncToFirebase('notifications', merged);
             syncToFirestore('notifications', merged);
-            return merged;
           }
-          return prev;
+          return merged;
         });
       });
 
@@ -655,13 +655,13 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const parsed = parseRemoteData(remoteUsers);
         setUsers((prev) => {
           const merged = mergeEntitiesById(parsed, prev);
-          if (isDiff(merged, prev)) {
+          const hasLocalOnly = prev.some((p) => p && p.id && !parsed.some((r) => r && r.id === p.id));
+          if (hasLocalOnly || isDiff(merged, prev)) {
             localStorage.setItem('dukhan_users', JSON.stringify(merged));
             syncToFirebase('users', merged);
             syncToFirestore('users', merged);
-            return merged;
           }
-          return prev;
+          return merged;
         });
       });
       const unsubCapital = subscribeToFirebase('capital_cash', (remoteCap) => {

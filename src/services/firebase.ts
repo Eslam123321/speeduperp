@@ -59,6 +59,13 @@ export const initializeFirebaseService = (config: FirebaseConfigInput = DEFAULT_
   }
 };
 
+// Auto-initialize default Firebase service on module load
+try {
+  initializeFirebaseService(DEFAULT_FIREBASE_CONFIG);
+} catch (e) {
+  console.warn('Auto Firebase init error:', e);
+}
+
 export const getFirestoreDb = () => db;
 export const getRealtimeDb = () => rtdb;
 export const isFirebaseActive = () => db !== null || rtdb !== null;
