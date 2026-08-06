@@ -839,7 +839,13 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const actualPaid = paymentMethod === 'cash' ? finalAmount : Math.min(Math.max(0, safePaid), finalAmount);
     const remainingAmount = Math.max(0, finalAmount - actualPaid);
 
-    const invoiceNum = `INV-2026-${String(sales.length + 1001)}`;
+    const existingNums = sales.map((s) => {
+      const match = s.invoiceNumber?.match(/INV-2026-(\d+)/);
+      return match ? parseInt(match[1], 10) : 1000;
+    });
+    const maxNum = existingNums.length > 0 ? Math.max(...existingNums) : 1000;
+    const nextSeq = Math.max(maxNum + 1, sales.length + 1001);
+    const invoiceNum = `INV-2026-${nextSeq}`;
     const newInvoice: SaleInvoice = {
       id: `sale-${Date.now()}`,
       invoiceNumber: invoiceNum,
