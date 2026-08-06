@@ -35,7 +35,7 @@ import {
   INITIAL_REPRESENTATIVES,
   INITIAL_EXPENSES,
 } from '../data/initialData';
-import { initializeFirebaseService, DEFAULT_FIREBASE_CONFIG, syncToFirebase, syncToFirestore, deleteFromFirestore, fetchFromFirebase, subscribeToFirebase } from '../services/firebase';
+import { initializeFirebaseService, DEFAULT_FIREBASE_CONFIG, syncToFirebase, syncToFirestore, syncSingleToFirebase, syncSingleToFirestore, deleteFromFirebase, deleteFromFirestore, fetchFromFirebase, subscribeToFirebase } from '../services/firebase';
 
 interface ERPContextType {
   products: Product[];
@@ -980,7 +980,14 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setInitialCapitalCashState((prev) => prev + paidAmount);
     }
 
-    setSales((prev) => [newInvoice, ...prev]);
+    setSales((prev) => {
+      const nextSales = [newInvoice, ...prev];
+      localStorage.setItem('dukhan_sales', JSON.stringify(nextSales));
+      return nextSales;
+    });
+
+    syncSingleToFirebase('sales', newInvoice);
+    syncSingleToFirestore('sales', newInvoice);
     setPrintingInvoice(newInvoice);
 
     // Update Employee Last Sale Date & Assigned Stock if created by employee
@@ -1112,8 +1119,9 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // 3. Update Sales array & sync to Firebase
     const updatedList = sales.map((s) => (s.id === updatedInvoice.id ? updatedInvoice : s));
     setSales(updatedList);
-    syncToFirebase('sales', updatedList);
-    syncToFirestore('sales', updatedList);
+    localStorage.setItem('dukhan_sales', JSON.stringify(updatedList));
+    syncSingleToFirebase('sales', updatedInvoice);
+    syncSingleToFirestore('sales', updatedInvoice);
 
     setEditingInvoice(null);
     return updatedInvoice;
@@ -1121,7 +1129,12 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const deleteSaleInvoice = (id: string) => {
     deleteFromFirestore('sales', id);
-    setSales((prev) => prev.filter((s) => s.id !== id));
+    deleteFromFirebase('sales', id);
+    setSales((prev) => {
+      const next = prev.filter((s) => s.id !== id);
+      localStorage.setItem('dukhan_sales', JSON.stringify(next));
+      return next;
+    });
   };
 
   // Purchase Operations
@@ -1167,6 +1180,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return p;
     });
     setProducts(updatedProducts);
+    syncToFirebase('products', updatedProducts);
 
     if (supplierId && remainingAmount > 0) {
       setSuppliers((prev) =>
@@ -1187,7 +1201,14 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
     ]);
 
-    setPurchases((prev) => [newPurchase, ...prev]);
+    setPurchases((prev) => {
+      const nextPurchases = [newPurchase, ...prev];
+      localStorage.setItem('dukhan_purchases', JSON.stringify(nextPurchases));
+      return nextPurchases;
+    });
+
+    syncSingleToFirebase('purchases', newPurchase);
+    syncSingleToFirestore('purchases', newPurchase);
 
     // Auto-send invoice email notification
     sendInvoiceEmailNotification(newPurchase, 'purchase').catch((err) =>
@@ -1198,7 +1219,13 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deletePurchaseInvoice = (id: string) => {
-    setPurchases((prev) => prev.filter((p) => p.id !== id));
+    deleteFromFirestore('purchases', id);
+    deleteFromFirebase('purchases', id);
+    setPurchases((prev) => {
+      const next = prev.filter((p) => p.id !== id);
+      localStorage.setItem('dukhan_purchases', JSON.stringify(next));
+      return next;
+    });
   };
 
   // Customer Operations

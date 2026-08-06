@@ -1,6 +1,6 @@
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
 import { getFirestore, doc, setDoc, deleteDoc, type Firestore } from 'firebase/firestore';
-import { getDatabase, ref, set, get, onValue, type Database } from 'firebase/database';
+import { getDatabase, ref, set, get, remove, onValue, type Database } from 'firebase/database';
 import { getAnalytics, isSupported } from 'firebase/analytics';
 import type { FirebaseConfigInput } from '../types';
 
@@ -63,13 +63,69 @@ export const getFirestoreDb = () => db;
 export const getRealtimeDb = () => rtdb;
 export const isFirebaseActive = () => db !== null || rtdb !== null;
 
+export const sanitizeForFirebase = (data: any): any => {
+  if (data === undefined) return null;
+  if (data === null || typeof data !== 'object') return data;
+  if (data instanceof Date) return data.toISOString();
+  if (Array.isArray(data)) {
+    return data.map((item) => sanitizeForFirebase(item));
+  }
+  const cleanObj: Record<string, any> = {};
+  for (const key of Object.keys(data)) {
+    const val = data[key];
+    if (val !== undefined) {
+      cleanObj[key] = sanitizeForFirebase(val);
+    }
+  }
+  return cleanObj;
+};
+
+export const syncSingleToFirebase = async (path: string, item: any) => {
+  if (!rtdb || !item) return;
+  try {
+    const cleanItem = sanitizeForFirebase(item);
+    const id = cleanItem && cleanItem.id ? String(cleanItem.id) : null;
+    if (id) {
+      const itemRef = ref(rtdb, `${path}/${id}`);
+      await set(itemRef, cleanItem);
+    } else {
+      const dbRef = ref(rtdb, path);
+      await set(dbRef, cleanItem);
+    }
+  } catch (err) {
+    console.error(`Firebase Single Sync Error at ${path}:`, err);
+  }
+};
+
+export const syncSingleToFirestore = async (collectionName: string, item: any) => {
+  if (!db || !item || !item.id) return;
+  try {
+    const cleanItem = sanitizeForFirebase(item);
+    const docRef = doc(db, collectionName, String(cleanItem.id));
+    await setDoc(docRef, cleanItem, { merge: true });
+  } catch (err) {
+    console.error(`Firestore Single Sync Error at ${collectionName}/${item.id}:`, err);
+  }
+};
+
+export const deleteFromFirebase = async (path: string, itemId: string) => {
+  if (!rtdb || !itemId) return;
+  try {
+    const itemRef = ref(rtdb, `${path}/${String(itemId)}`);
+    await remove(itemRef);
+  } catch (err) {
+    console.error(`Firebase Delete Error at ${path}/${itemId}:`, err);
+  }
+};
+
 export const syncToFirebase = async (path: string, data: any) => {
   if (!rtdb) return;
   try {
+    const cleanData = sanitizeForFirebase(data);
     const dbRef = ref(rtdb, path);
-    if (Array.isArray(data)) {
+    if (Array.isArray(cleanData)) {
       const objData: Record<string, any> = {};
-      data.forEach((item, idx) => {
+      cleanData.forEach((item, idx) => {
         if (item && item.id) {
           objData[String(item.id)] = item;
         } else {
@@ -78,7 +134,7 @@ export const syncToFirebase = async (path: string, data: any) => {
       });
       await set(dbRef, objData);
     } else {
-      await set(dbRef, data);
+      await set(dbRef, cleanData);
     }
   } catch (err) {
     console.error(`Firebase Sync Error at ${path}:`, err);
@@ -88,7 +144,8 @@ export const syncToFirebase = async (path: string, data: any) => {
 export const syncToFirestore = async (collectionName: string, data: any[]) => {
   if (!db || !Array.isArray(data)) return;
   try {
-    for (const item of data) {
+    const cleanArray = sanitizeForFirebase(data);
+    for (const item of cleanArray) {
       if (item && item.id) {
         const docRef = doc(db, collectionName, String(item.id));
         await setDoc(docRef, item, { merge: true });
