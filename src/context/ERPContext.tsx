@@ -411,69 +411,49 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return perms.includes('all') || perms.includes(perm);
   };
 
-  // Sync to localStorage, Firebase Realtime Database & Cloud Firestore on EVERY state change
+  // Sync state to localStorage for offline resilience
   useEffect(() => {
     localStorage.setItem('dukhan_products', JSON.stringify(products));
-    syncToFirebase('products', products);
-    syncToFirestore('products', products);
   }, [products]);
 
   useEffect(() => {
     localStorage.setItem('dukhan_customers', JSON.stringify(customers));
-    syncToFirebase('customers', customers);
-    syncToFirestore('customers', customers);
   }, [customers]);
 
   useEffect(() => {
     localStorage.setItem('dukhan_suppliers', JSON.stringify(suppliers));
-    syncToFirebase('suppliers', suppliers);
-    syncToFirestore('suppliers', suppliers);
   }, [suppliers]);
 
   useEffect(() => {
     localStorage.setItem('dukhan_sales', JSON.stringify(sales));
-    syncToFirebase('sales', sales);
-    syncToFirestore('sales', sales);
   }, [sales]);
 
   useEffect(() => {
     localStorage.setItem('dukhan_purchases', JSON.stringify(purchases));
-    syncToFirebase('purchases', purchases);
-    syncToFirestore('purchases', purchases);
   }, [purchases]);
 
   useEffect(() => {
     localStorage.setItem('dukhan_representatives', JSON.stringify(representatives));
-    syncToFirebase('representatives', representatives);
-    syncToFirestore('representatives', representatives);
   }, [representatives]);
 
   useEffect(() => {
     localStorage.setItem('dukhan_expenses', JSON.stringify(expenses));
-    syncToFirebase('expenses', expenses);
-    syncToFirestore('expenses', expenses);
   }, [expenses]);
 
   useEffect(() => {
     localStorage.setItem('dukhan_notifications', JSON.stringify(notifications));
-    syncToFirebase('notifications', notifications);
-    syncToFirestore('notifications', notifications);
   }, [notifications]);
 
   useEffect(() => {
     localStorage.setItem('dukhan_users', JSON.stringify(users));
-    syncToFirebase('users', users);
-    syncToFirestore('users', users);
   }, [users]);
 
   useEffect(() => {
     localStorage.setItem('dukhan_email_settings', JSON.stringify(emailSettings));
-    syncToFirebase('email_settings', emailSettings);
   }, [emailSettings]);
 
   useEffect(() => {
     localStorage.setItem('dukhan_email_logs', JSON.stringify(emailLogs));
-    syncToFirebase('email_logs', emailLogs);
   }, [emailLogs]);
 
   useEffect(() => {
