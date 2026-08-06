@@ -7,10 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview",
-    "firebase:login": "firebase-tools login",
-    "deploy:firebase": "npm run build && firebase-tools deploy --only hosting",
-    "deploy:gh": "npm run build && gh-pages -d dist"
+    "preview": "vite preview"
   },
   "dependencies": {
     "firebase": "^12.17.0",
